@@ -33,52 +33,8 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 w-full h-[99px] bg-black flex items-center justify-between md:justify-around md:px-16 z-50 shadow-lg">
-      {/* Left Section - Avatar (Mobile) and Logo */}
+      {/* Left Section - Logo Only */}
       <div className="flex gap-5 items-center">
-        {isLoggedIn ? (
-          <div className="relative left-2 md:hidden">
-            <img
-              src={user?.profilePicUrl || "https://via.placeholder.com/150"}
-              alt="User Avatar"
-              className="w-10 h-10 rounded-full cursor-pointer border-[1.5px] border-white hover:scale-105 transition-transform duration-300"
-              onClick={() => setShowPopover(!showPopover)}
-            />
-            {showPopover && (
-              <div className="absolute top-14 bg-black text-white rounded-lg shadow-md w-56 py-5 px-6 z-[1000] space-y-4">
-                <Link to="/profile">
-                  <button className="w-full flex items-center justify-start gap-3 text-base text-white outline-white/40 rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300">
-                    <FiUser className="w-5 h-5" />
-                    <span className="font-medium">View Profile</span>
-                  </button>
-                </Link>
-
-                {user?.role === 'admin' && (
-                  <Link to="/admin">
-                    <button className="w-full flex items-center justify-start gap-3 text-base text-white rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300">
-                      <FiSettings className="w-5 h-5" />
-                      <span className="font-medium">Dashboard</span>
-                    </button>
-                  </Link>
-                )}
-
-                <button
-                  onClick={logoutHandler}
-                  className="w-full flex items-center justify-start gap-3 text-base text-white rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300"
-                >
-                  <FiLogOut className="w-5 h-5" />
-                  <span className="font-medium">Logout</span>
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <Link to="/login-signup" className="hidden md:flex">
-            <button className="bg-white text-black w-[149.26px] h-[40px] rounded-full font-semibold shadow-lg hover:opacity-80 flex items-center justify-center cursor-pointer">
-              <span className="w-[112px] text-center">Get Started</span>
-            </button>
-          </Link>
-        )}
-        
         {/* Logo - Clickable */}
         <Link to="/" onClick={() => setActiveTab("home")}>
           <h1 className="text-white text-[35px] font-semibold cursor-pointer">ShowGo.</h1>
@@ -114,50 +70,52 @@ const Navbar = () => {
         ))}
       </ul>
 
-      {/* Get Started / User Avatar (Desktop) */}
-      {isLoggedIn ? (
-        <div className="relative hidden md:block">
-          <img
-            src={user?.profilePicUrl || "https://via.placeholder.com/150"}
-            alt="User Avatar"
-            className="w-10 h-10 rounded-full cursor-pointer border-[1.5px] border-white hover:scale-105 transition-transform duration-300"
-            onClick={() => setShowPopover(!showPopover)}
-          />
-          {showPopover && (
-            <div className="absolute top-14 right-0 bg-black text-white rounded-lg shadow-md w-56 py-5 px-6 z-[1000] space-y-4">
-              <Link to="/profile">
-                <button className="w-full flex items-center justify-start gap-3 text-base text-white outline-white/40 rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300">
-                  <FiUser className="w-5 h-5" />
-                  <span className="font-medium">View Profile</span>
-                </button>
-              </Link>
-
-              {user?.role === 'admin' && (
-                <Link to="/admin">
-                  <button className="w-full flex items-center justify-start gap-3 text-base text-white rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300">
-                    <FiSettings className="w-5 h-5" />
-                    <span className="font-medium">Dashboard</span>
+      {/* Right Section - User Avatar or Get Started (Desktop) */}
+      <div className="flex items-center">
+        {isLoggedIn ? (
+          <div className="relative">
+            <img
+               src={user?.profilePicUrl || "https://via.placeholder.com/150"}
+              alt="User Avatar"
+              className="w-10 h-10 rounded-full cursor-pointer border-[1.5px] border-white hover:scale-105 transition-transform duration-300"
+              onClick={() => setShowPopover(!showPopover)}
+            />
+            {showPopover && (
+              <div className="absolute top-14 right-0 bg-black text-white rounded-lg shadow-md w-56 py-5 px-6 z-[1000] space-y-4">
+                <Link to="/profile">
+                  <button className="w-full flex items-center justify-start gap-3 text-base text-white outline-white/40 rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300">
+                    <FiUser className="w-5 h-5" />
+                    <span className="font-medium">View Profile</span>
                   </button>
                 </Link>
-              )}
 
-              <button
-                onClick={logoutHandler}
-                className="w-full flex items-center justify-start gap-3 text-base text-white rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300"
-              >
-                <FiLogOut className="w-5 h-5" />
-                <span className="font-medium">Logout</span>
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <Link to="/login-signup" className="hidden md:flex">
-          <button className="bg-white text-black w-[149.26px] h-[40px] rounded-full font-semibold shadow-lg hover:opacity-80 flex items-center justify-center cursor-pointer">
-            <span className="w-[112px] text-center">Get Started</span>
-          </button>
-        </Link>
-      )}
+                {user?.role === 'admin' && (
+                  <Link to="/admin">
+                    <button className="w-full flex items-center justify-start gap-3 text-base text-white rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300">
+                      <FiSettings className="w-5 h-5" />
+                      <span className="font-medium">Dashboard</span>
+                    </button>
+                  </Link>
+                )}
+
+                <button
+                  onClick={logoutHandler}
+                  className="w-full flex items-center justify-start gap-3 text-base text-white rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300"
+                >
+                  <FiLogOut className="w-5 h-5" />
+                  <span className="font-medium">Logout</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link to="/login-signup" className="hidden md:flex">
+            <button className="bg-white text-black w-[149.26px] h-[40px] rounded-full font-semibold shadow-lg hover:opacity-80 flex items-center justify-center cursor-pointer">
+              <span className="w-[112px] text-center">Get Started</span>
+            </button>
+          </Link>
+        )}
+      </div>
 
       {/* Mobile Menu (Only Visible When Open) */}
       {isOpen && (
@@ -183,13 +141,40 @@ const Navbar = () => {
             </Link>
           ))}
 
-          {/* Get Started Button (Mobile) */}
+          {/* Get Started Button (Mobile) - Only shown when not logged in */}
           {!isLoggedIn && (
             <Link to="/login-signup">
               <button className="bg-white text-black w-[149.26px] h-[40px] rounded-full font-semibold shadow-lg hover:opacity-80">
                 Get Started
               </button>
             </Link>
+          )}
+
+          {/* User Avatar (Mobile) - Only shown when logged in */}
+          {isLoggedIn && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src={user?.profilePicUrl || "https://via.placeholder.com/150"}
+                  alt="User Avatar"
+                  className="w-10 h-10 rounded-full border-[1.5px] border-white"
+                />
+                <span className="text-white font-medium">My Account</span>
+              </div>
+              <Link to="/profile" className="w-full">
+                <button className="w-full flex items-center justify-center gap-3 text-base text-white rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300">
+                  <FiUser className="w-5 h-5" />
+                  <span className="font-medium">View Profile</span>
+                </button>
+              </Link>
+              <button
+                onClick={logoutHandler}
+                className="w-full flex items-center justify-center gap-3 text-base text-white rounded-lg py-3 px-4 hover:bg-white hover:text-black transition-all duration-300"
+              >
+                <FiLogOut className="w-5 h-5" />
+                <span className="font-medium">Logout</span>
+              </button>
+            </div>
           )}
         </div>
       )}
