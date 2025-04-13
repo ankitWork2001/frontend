@@ -75,15 +75,15 @@ const BookingConfirmation = () => {
 
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 mb-8 sm:mb-12">
-            <button
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className={`${
-                isDownloading ? 'bg-gray-400' : 'bg-white hover:bg-gray-100'
-              } text-black font-semibold px-6 py-3 rounded-2xl transition-all duration-200`}
-            >
-              {isDownloading ? 'Downloading...' : 'Download Ticket'}
-            </button>
+          <button
+  onClick={handleDownload}
+  disabled={isDownloading}
+  className={`${
+    isDownloading ? 'bg-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-100 cursor-pointer'
+  } text-black font-semibold px-6 py-3 rounded-2xl transition-all duration-200`}
+>
+  {isDownloading ? 'Downloading...' : 'Download Ticket'}
+</button>
             <Link to="/" className="block sm:inline-block">
               <button className="w-full bg-transparent hover:bg-white/10 border-2 border-white text-white font-semibold px-6 py-3 rounded-2xl transition-all duration-200">
                 Go Back Home
