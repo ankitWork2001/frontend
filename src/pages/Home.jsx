@@ -101,11 +101,17 @@ const Home = () => {
         {/* Merged Section: "Dive In" + Features */}
         <div className="flex flex-col items-center justify-center gap-6 min-h-[500px]">
           {/* "Dive In" Button */}
-          <div className="w-[140px] h-[50px] sm:w-[165px] sm:h-[58px] rounded-lg cursor-pointer flex items-center justify-center border border-white/34">
-            <button className="text-white font-Karla cursor-pointer text-[18px] sm:text-[22px] md:text-[24px] leading-[100%] tracking-[0.05em]">
-              Dive In
-            </button>
-          </div>
+          <div className="group w-[140px] h-[50px] sm:w-[165px] sm:h-[58px] rounded-full cursor-pointer flex items-center justify-center relative overflow-hidden transition-all duration-500 border border-white/34 hover:shadow-[0_0_25px_5px_rgba(255,255,255,0.4)]">
+  {/* Hover Gradient Background */}
+  <div className="absolute inset-0 bg-gradient-to-r from-[#000FFF] to-[#FF008C] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
+  
+  {/* Text Content */}
+  <button className="relative z-10 text-white font-Karla text-[18px] sm:text-[22px] md:text-[24px] leading-[100%] tracking-[0.05em] transition-colors duration-500">
+    Dive In
+  </button>
+</div>
+
+
 
           {/* Feature Section */}
           <div className="text-white p-4 sm:p-10 w-full flex flex-col md:flex-row gap-8 md:gap-4 lg:gap-8 justify-center items-center">
