@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import { toDataURL } from 'qrcode';
 import { QRCodeSVG } from 'qrcode.react';
@@ -13,11 +13,14 @@ const Ticket = () => {
   const [qrData, setQrData] = useState("");
 
   // Initialize Appwrite client once
-  const client = new Client()
-    .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT)
-    .setProject(import.meta.env.VITE_APPWRITE_PROJECT);
+  const client = useMemo(() => {
+    return new Client()
+      .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT)
+      .setProject(import.meta.env.VITE_APPWRITE_PROJECT);
+  }, []);
   
-  const storage = new Storage(client);
+  const storage = useMemo(() => new Storage(client), [client]);
+  
 
   const generateQRCode = async (data) => {
     try {
@@ -91,6 +94,12 @@ const Ticket = () => {
         });
         setQrData(data);
 
+        // Check if already downloaded
+        const isDownloaded = localStorage.getItem(`ticketDownloaded_${ticketId}`);
+        if (isDownloaded) {
+          console.log('Ticket already downloaded');
+        }
+
         // Generate local QR code for display
         const localQrUrl = await generateQRCode(data);
         setQrCodeUrl(localQrUrl || "");
@@ -131,91 +140,96 @@ const Ticket = () => {
 
 
 
-return (
-  <div className="flex justify-center items-center min-h-screen p-2 bg-black">
-  <div className="w-[320px] bg-white rounded-[32px] shadow-xl text-black relative font-sans overflow-hidden">
-
-    {/* Header */}
-    <div className="bg-black text-white text-center py-5 px-3">
-      <h1 className="text-2xl font-semibold tracking-wide">{eventDetails.name}</h1>
-      <p className="mt-1 text-xs tracking-wide">{eventDetails.tagline || "Premium Event"}</p>
+  return (
+    <div className="flex justify-center items-center min-h-screen p-2 bg-black">
+      <div className="w-[320px] bg-white rounded-[32px] shadow-xl text-black relative font-sans overflow-hidden">
+  
+        {/* Header */}
+        <div className="bg-black text-white text-center py-5 px-3">
+          <h1 className="text-2xl font-semibold tracking-wide">{eventDetails.name}</h1>
+          <p className="mt-1 text-xs tracking-wide">{eventDetails.tagline || "Premium Event"}</p>
+        </div>
+  
+        {/* Details */}
+        <div className="text-xs text-gray-800 px-4 py-3 grid grid-cols-2 gap-y-3">
+          <div>
+            <p className="font-semibold">Venue</p>
+            <p>{eventDetails.location || "Not specified"}</p>
+          </div>
+          <div>
+            <p className="font-semibold">Date</p>
+            <p>
+              {new Date(eventDetails.date).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+          <div>
+            <p className="font-semibold">Quantity</p>
+            <p>{quantity}</p>
+          </div>
+          <div>
+            <p className="font-semibold">Time</p>
+            <p>{eventDetails.time || "8:00 PM"}</p>
+          </div>
+          <div>
+            <p className="font-semibold">Name</p>
+            <p className="mt-1">{userName}</p> {/* Added mt-1 for name spacing */}
+          </div>
+          <div>
+            <p className="font-semibold">Access</p>
+            <p>{orderDetails.ticketCategory || "VIP"}: ₹{orderDetails.singleTicketPrice || "0"}</p>
+          </div>
+        </div>
+  
+        {/* Decorative Elements Container */}
+        <div className="relative py-2"> {/* Added py-2 for vertical spacing */}
+          {/* Dotted Divider - Perfectly centered */}
+          <div className="absolute top-1/2 left-0 right-0 border-t border-dotted border-gray-300 mx-12"></div>
+          
+          {/* Left Circle - Moved down by adjusting top-1/2 to top-3/4 */}
+          <div className="absolute top-3/4 -translate-y-1/2 -left-3 h-8 w-8 bg-black rounded-full border-4 border-white"></div>
+          
+          {/* Right Circle - Moved down by adjusting top-1/2 to top-3/4 */}
+          <div className="absolute top-3/4 -translate-y-1/2 -right-3 h-8 w-8 bg-black rounded-full border-4 border-white"></div>
+        </div>
+  
+        {/* QR Code Section */}
+        <div className="flex flex-col items-center px-3 pb-3">
+          <p className="text-xs mb-1 text-gray-600 font-medium">Radiance Tech Event</p>
+          <div className="bg-white border border-gray-300 p-2 rounded-md">
+            {error ? (
+              <p className="text-red-500 text-xs text-center">{error}</p>
+            ) : qrCodeUrl ? (
+              <img
+                src={qrCodeUrl}
+                alt="QR Code"
+                className="w-40 h-40 object-contain"
+                onError={() => setError("Failed to load QR image")}
+              />
+            ) : (
+              <QRCodeSVG
+                value={qrData || "temporary-data"}
+                size={160}
+                level="H"
+                includeMargin={true}
+              />
+            )}
+          </div>
+          <p className="mt-1 text-gray-600 text-[9px] font-mono">{ticketId.slice(0, 24)}</p>
+          <p className="text-base font-semibold mt-1">x{quantity}</p>
+        </div>
+  
+        {/* Footer */}
+        <div className="text-center bg-black text-white py-3">
+          <p className="text-xs text-gray-400">booked on</p>
+          <p className="font-bold text-base tracking-wide">ShowGo.</p>
+        </div>
+      </div>
     </div>
-
-    {/* Details */}
-    <div className="text-xs text-gray-800 px-4 py-3 grid grid-cols-2 gap-y-3">
-      <div>
-        <p className="font-semibold">Venue</p>
-        <p>{eventDetails.location || "Not specified"}</p>
-      </div>
-      <div>
-        <p className="font-semibold">Date</p>
-        <p>
-          {new Date(eventDetails.date).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-          })}
-        </p>
-      </div>
-      <div>
-        <p className="font-semibold">Quantity</p>
-        <p>{quantity}</p>
-      </div>
-      <div>
-        <p className="font-semibold">Time</p>
-        <p>{eventDetails.time || "8:00 PM"}</p>
-      </div>
-      <div>
-        <p className="font-semibold">Name</p>
-        <p>{userName}</p>
-      </div>
-      <div>
-        <p className="font-semibold">Access</p>
-        <p>{orderDetails.ticketCategory || "VIP"}: ₹{orderDetails.singleTicketPrice || "0"}</p>
-      </div>
-    </div>
-
-    {/* Dotted Divider */}
-    <div className="border-t border-dotted border-gray-300 mx-4 my-1.5"></div>
-
-    {/* QR Code */}
-    <div className="flex flex-col items-center px-3 pb-3">
-      <p className="text-xs mb-1 text-gray-600 font-medium">Radiance Tech Event</p>
-      <div className="bg-white border border-gray-300 p-2 rounded-md">
-        {error ? (
-          <p className="text-red-500 text-xs text-center">{error}</p>
-        ) : qrCodeUrl ? (
-          <img
-            src={qrCodeUrl}
-            alt="QR Code"
-            className="w-40 h-40 object-contain"
-            onError={() => setError("Failed to load QR image")}
-          />
-        ) : (
-          <QRCodeSVG
-            value={qrData || "temporary-data"}
-            size={160}
-            level="H"
-            includeMargin={true}
-          />
-        )}
-      </div>
-      <p className="mt-1 text-gray-600 text-[9px] font-mono">{ticketId.slice(0, 24)}</p>
-      <p className="text-base font-semibold mt-1">x{quantity}</p>
-    </div>
-
-    {/* Footer */}
-    <div className="text-center bg-black text-white py-3">
-      <p className="text-xs text-gray-400">booked on</p>
-      <p className="font-bold text-base tracking-wide">ShowGo.</p>
-    </div>
-
-    {/* Decorative Circles */}
-    <div className="absolute top-1/2 -translate-y-1/2 -left-3 h-8 w-8 bg-black rounded-full border-4 border-white"></div>
-    <div className="absolute top-1/2 -translate-y-1/2 -right-3 h-8 w-8 bg-black rounded-full border-4 border-white"></div>
-  </div>
-</div>
-);
+  );
 
 };
 
