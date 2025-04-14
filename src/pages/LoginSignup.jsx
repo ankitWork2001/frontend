@@ -111,7 +111,7 @@ const AuthForm = () => {
                   placeholder="John Doe"
                   value={formData.fullName}
                   onChange={handleChange}
-                  className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
                   required
                 />
               </div>
@@ -129,7 +129,7 @@ const AuthForm = () => {
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
-                className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
                 required
               />
             </div>
@@ -147,7 +147,7 @@ const AuthForm = () => {
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full h-11 px-4 pr-10 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="block w-full h-11 px-4 pr-10 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
                   required
                   minLength={8}
                 />
@@ -174,7 +174,7 @@ const AuthForm = () => {
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
                   required
                 />
               </div>
@@ -185,7 +185,7 @@ const AuthForm = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 flex items-center justify-center gap-2 rounded-md bg-amber-600 text-white font-medium hover:bg-amber-700 transition-colors"
+                className="w-full h-11 flex items-center justify-center gap-2 rounded-md bg-black text-white font-medium cursor-pointer  transition-colors"
               >
                 {loading ? "Processing..." : isLogin ? "Login" : "Create Account"}
               </button>
@@ -197,7 +197,7 @@ const AuthForm = () => {
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <button
               type="button"
-              className="text-amber-400 hover:text-amber-300 font-medium"
+              className="text-white cursor-pointer font-medium"
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError("");
