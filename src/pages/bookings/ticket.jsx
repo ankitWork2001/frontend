@@ -18,9 +18,9 @@ const Ticket = () => {
       .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT)
       .setProject(import.meta.env.VITE_APPWRITE_PROJECT);
   }, []);
-  
+
   const storage = useMemo(() => new Storage(client), [client]);
-  
+
 
   const generateQRCode = async (data) => {
     try {
@@ -80,10 +80,10 @@ const Ticket = () => {
   useEffect(() => {
     const initializeTicket = async () => {
       try {
-        const name = state?.orderDetails?.name || 
-                    localStorage.getItem('userName') || 
-                    state?.user?.name || 
-                    "Guest";
+        const name = state?.orderDetails?.name ||
+          localStorage.getItem('userName') ||
+          state?.user?.name ||
+          "Guest";
         setUserName(name);
 
         const ticketId = state?.orderDetails?.ticketId || ID.unique();
@@ -141,96 +141,119 @@ const Ticket = () => {
 
 
   return (
-    <div className="flex justify-center items-center min-h-screen p-2 bg-black">
-      <div className="w-[320px] bg-white rounded-[32px] shadow-xl text-black relative font-sans overflow-hidden">
-  
-        {/* Header */}
-        <div className="bg-black text-white text-center py-5 px-3">
-          <h1 className="text-2xl font-semibold tracking-wide">{eventDetails.name}</h1>
-          <p className="mt-1 text-xs tracking-wide">{eventDetails.tagline || "Premium Event"}</p>
+    <div className="flex justify-center items-center min-h-screen p-4 bg-black">
+      <div className="font-serif w-[340px] h-[620px] bg-white rounded-[40px] flex flex-col overflow-hidden drop-shadow-[0px_4px_10px_rgba(255,255,255,0.7)]">
+
+        {/* Top White Padding - Reduced height */}
+        <div className="h-6 bg-white flex-none"></div>
+
+        {/* Header - Made more compact */}
+        <div className="bg-gradient-to-b from-black to-gray-900 w-full flex-none flex flex-col justify-center items-center py-3 px-2 text-white">
+          <div className="text-lg font-bold line-clamp-2 text-center">{eventDetails.name}</div>
+          <div className="text-xs text-center mt-1">{eventDetails.tagline || "Premium Event"}</div>
         </div>
-  
-        {/* Details */}
-        <div className="text-xs text-gray-800 px-4 py-3 grid grid-cols-2 gap-y-3">
-          <div>
-            <p className="font-semibold">Venue</p>
-            <p>{eventDetails.location || "Not specified"}</p>
+
+        {/* Tagline - Made more compact */}
+        <div className="w-full flex justify-center py-1 flex-none">
+          <div className="text-[10px] text-gray-500">The Sound of Arijit Singh</div>
+        </div>
+
+        {/* Main Content - Added overflow control */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Info Section - Reduced padding and gaps */}
+          <div className="w-full flex px-4 py-2">
+            <div className="w-1/2 flex flex-col gap-3">
+              <div>
+                <div className="text-xs font-bold text-black">Venue</div>
+                <div className="text-[10px] text-gray-600 line-clamp-2">{eventDetails.location || "Not specified"}</div>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-black">Quantity</div>
+                <div className="text-[10px] text-gray-600">{quantity}</div>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-black">Name</div>
+                <div className="text-[10px] text-gray-600 line-clamp-1">
+                  {userName && userName.length > 20 ? userName.slice(0, 17) + "..." : userName}
+                </div>
+              </div>
+            </div>
+
+            <div className="w-1/2 flex flex-col gap-3">
+              <div>
+                <div className="text-xs font-bold text-black">Date</div>
+                <div className="text-[10px] text-gray-600">
+                  {new Date(eventDetails.date).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-black">Time</div>
+                <div className="text-[10px] text-gray-600">{eventDetails.time || "8:00 PM"}</div>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-black">Access</div>
+                <div className="text-[10px] text-gray-600">
+                  {orderDetails.ticketCategory || "VIP"}: ₹{orderDetails.singleTicketPrice || "0"}
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold">Date</p>
-            <p>
-              {new Date(eventDetails.date).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </p>
+
+          {/* Dotted Line + Circles - Made more compact */}
+          <div className="relative py-4">
+            <div className="absolute top-1/2 left-8 right-8 border-t-2 border-dotted border-gray-300"></div>
+            <div className="absolute top-1/2 -translate-y-1/2 -left-4 h-8 w-8 bg-black rounded-full border-[4px] border-white"></div>
+            <div className="absolute top-1/2 -translate-y-1/2 -right-4 h-8 w-8 bg-black rounded-full border-[4px] border-white"></div>
           </div>
-          <div>
-            <p className="font-semibold">Quantity</p>
-            <p>{quantity}</p>
-          </div>
-          <div>
-            <p className="font-semibold">Time</p>
-            <p>{eventDetails.time || "8:00 PM"}</p>
-          </div>
-          <div>
-            <p className="font-semibold">Name</p>
-            <p className="mt-1">{userName}</p> {/* Added mt-1 for name spacing */}
-          </div>
-          <div>
-            <p className="font-semibold">Access</p>
-            <p>{orderDetails.ticketCategory || "VIP"}: ₹{orderDetails.singleTicketPrice || "0"}</p>
+
+          {/* QR Section - Made more compact */}
+          <div className="flex flex-col items-center px-4 pb-4">
+            <p className="text-xs mb-2 text-gray-600 font-medium">Radiance Tech Event</p>
+            <div className="bg-white border border-gray-300 p-2 rounded-lg">
+              {error ? (
+                <p className="text-red-500 text-xs text-center">{error}</p>
+              ) : qrCodeUrl ? (
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Code"
+                  className="w-32 h-32 object-contain"
+                  onError={() => setError("Failed to load QR image")}
+                />
+              ) : (
+                <QRCodeSVG
+                  value={qrData || "temporary-data"}
+                  size={120}
+                  level="H"
+                  includeMargin={true}
+                />
+              )}
+            </div>
+            {/* Ticket ID + Quantity */}
+<div className="w-full mt-2 flex flex-col items-center justify-center space-y-1 px-2">
+  <p className="text-gray-600 text-[10px] font-mono text-center break-words">
+    {ticketId}
+  </p>
+  <p className="text-lg font-bold text-center">x{quantity}</p>
+</div>
           </div>
         </div>
-  
-        {/* Decorative Elements Container */}
-        <div className="relative py-2"> {/* Added py-2 for vertical spacing */}
-          {/* Dotted Divider - Perfectly centered */}
-          <div className="absolute top-1/2 left-0 right-0 border-t border-dotted border-gray-300 mx-12"></div>
-          
-          {/* Left Circle - Moved down by adjusting top-1/2 to top-3/4 */}
-          <div className="absolute top-3/4 -translate-y-1/2 -left-3 h-8 w-8 bg-black rounded-full border-4 border-white"></div>
-          
-          {/* Right Circle - Moved down by adjusting top-1/2 to top-3/4 */}
-          <div className="absolute top-3/4 -translate-y-1/2 -right-3 h-8 w-8 bg-black rounded-full border-4 border-white"></div>
+
+        {/* Footer - Made more compact */}
+        <div className="bg-gradient-to-b from-black to-gray-900 w-full flex-none flex flex-col justify-center items-center py-3 px-2 text-white">
+          <div className="text-[10px] text-gray-400">booked on</div>
+          <div className="bg-gray-400 w-24 h-[1px] my-1"></div>
+          <div className="text-lg font-bold mt-1">Show GO</div>
         </div>
-  
-        {/* QR Code Section */}
-        <div className="flex flex-col items-center px-3 pb-3">
-          <p className="text-xs mb-1 text-gray-600 font-medium">Radiance Tech Event</p>
-          <div className="bg-white border border-gray-300 p-2 rounded-md">
-            {error ? (
-              <p className="text-red-500 text-xs text-center">{error}</p>
-            ) : qrCodeUrl ? (
-              <img
-                src={qrCodeUrl}
-                alt="QR Code"
-                className="w-40 h-40 object-contain"
-                onError={() => setError("Failed to load QR image")}
-              />
-            ) : (
-              <QRCodeSVG
-                value={qrData || "temporary-data"}
-                size={160}
-                level="H"
-                includeMargin={true}
-              />
-            )}
-          </div>
-          <p className="mt-1 text-gray-600 text-[9px] font-mono">{ticketId.slice(0, 24)}</p>
-          <p className="text-base font-semibold mt-1">x{quantity}</p>
-        </div>
-  
-        {/* Footer */}
-        <div className="text-center bg-black text-white py-3">
-          <p className="text-xs text-gray-400">booked on</p>
-          <p className="font-bold text-base tracking-wide">ShowGo.</p>
-        </div>
+
+        {/* Bottom White Padding - Reduced height */}
+        <div className="h-6 bg-white flex-none"></div>
       </div>
     </div>
   );
-
 };
 
 export default Ticket;
