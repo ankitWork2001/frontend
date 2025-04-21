@@ -79,6 +79,8 @@ const EventDetails = ({ }) => {
 
           if (activeTickets.length > 0 && !selectedTicket) {
             updateSelectedTicket(activeTickets[0]);
+          } else {
+            updateSelectedTicket(null);
           }
         }
 
@@ -146,10 +148,10 @@ const EventDetails = ({ }) => {
 
   const calculateTotals = () => {
     if (!currentTicket) return {
-      gst: 0,
-      internetHandlingFee: 0,
-      subtotal: 0,
-      totalAmount: 0
+      gst: "0.00",
+      internetHandlingFee: "0.00",
+      subtotal: "0.00",
+      totalAmount: "0.00"
     };
 
     const subtotal = (currentTicket.price * quantity).toFixed(2);
@@ -458,15 +460,15 @@ const EventDetails = ({ }) => {
 
   return (
     <div className="bg-black">
-  <div className="px-4 py-10 md:px-10 lg:px-20 xl:px-40">
-    <div className="flex flex-col lg:flex-row gap-8 xl:gap-12">
-      <div className="flex-1 flex justify-center my-4 overflow-hidden">
-        <img
-          src={event.imageField}
-          alt={event.name || "Event Image"}
-          className="w-full h-full object-cover rounded-xl"
-        />
-      </div>
+      <div className="px-4 py-10 md:px-10 lg:px-20 xl:px-40">
+        <div className="flex flex-col lg:flex-row gap-8 xl:gap-12">
+          <div className="flex-1 flex justify-center my-4 overflow-hidden">
+            <img
+              src={event.imageField}
+              alt={event.name || "Event Image"}
+              className="w-full h-full object-cover rounded-xl"
+            />
+          </div>
           <div className="flex-1 text-white">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">{event.name}</h1>
             <h2 className="text-lg md:text-xl text-gray-400 mt-2">{event.tagline}</h2>
@@ -510,7 +512,7 @@ const EventDetails = ({ }) => {
             </div>
 
             <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 mt-6">
-              {!isSoldOut && (
+              {!isSoldOut && currentTicket && (
                 <div className="flex items-center bg-[#18181B] text-white rounded-full px-4 py-2">
                   <button
                     className="text-xl cursor-pointer px-2"
@@ -523,7 +525,7 @@ const EventDetails = ({ }) => {
                   <button
                     className="text-xl cursor-pointer px-2"
                     onClick={increment}
-                    disabled={currentTicket && quantity >= ticketsAvailable[currentTicket.category]}
+                    disabled={quantity >= ticketsAvailable[currentTicket.category]}
                   >
                     +
                   </button>
@@ -535,8 +537,8 @@ const EventDetails = ({ }) => {
               ) : authUser ? (
                 <button
                   onClick={handleBookNow}
-                  disabled={bookingLoading || isSoldOut}
-                  className={`bg-[#18181B] text-white w-full h-[37px] text-sm md:text-base font-semibold rounded-[25px] cursor-pointer ${bookingLoading ? 'opacity-50 cursor-not-allowed' : ''
+                  disabled={bookingLoading || isSoldOut || !currentTicket}
+                  className={`bg-[#18181B] text-white w-full h-[37px] text-sm md:text-base font-semibold rounded-[25px] cursor-pointer ${bookingLoading || !currentTicket ? 'opacity-50 cursor-not-allowed' : ''
                     } ${isSoldOut ? 'bg-red-900/50 text-red-400' : 'hover:bg-gray-700'}`}
                 >
                   {isSoldOut ? 'SOLD OUT' : bookingLoading ? 'Processing...' : 'Book Now'}
