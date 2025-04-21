@@ -5,6 +5,7 @@ import { useCart } from "../context/CartContext";
 import { getEventDetails, createOrder, databases, ID, createTransaction, getRazorpayKey, updateTicketQuantity, storage } from "../api/appwriteConfig";
 import QRCode from 'qrcode';
 import { MAPS_CONFIG } from "../config/config";
+import { useAuth } from "../context/AuthContext";
 
 const EventDetails = ({ }) => {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ const EventDetails = ({ }) => {
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [ticketsAvailable, setTicketsAvailable] = useState({});
   const [mapUrl, setMapUrl] = useState("");
+  const { user: authUser, loading: authLoading } = useAuth();
+
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -78,6 +81,7 @@ const EventDetails = ({ }) => {
             updateSelectedTicket(activeTickets[0]);
           }
         }
+
         // Generate map URL if coordinates exist
         if (eventData.eventLocation_Lat_Lng_VenueName) {
           const [lat, lng, venueName] = eventData.eventLocation_Lat_Lng_VenueName.split(",").map(item => item.trim());
@@ -88,12 +92,7 @@ const EventDetails = ({ }) => {
               return;
             }
 
-            // Using Maps Embed API
             const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${lat},${lng}`;
-
-            // Alternatively, you could use Static Maps API
-            // const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${apiKey}`;
-
             setMapUrl(embedUrl);
           }
         }
@@ -134,15 +133,12 @@ const EventDetails = ({ }) => {
         return {
           name,
           price: parseFloat(price),
-          display: `${name} - Rs. ${price} (${phaseTag})`, // ← Phase show karwa diya yahan
+          display: `${name} - Rs. ${price}`,
           category: name,
           available: parseInt(qty) || 0
         };
       });
   };
-
-
-
 
   const ticketOptions = getTicketOptions();
   const currentTicket = selectedTicket || ticketOptions[0];
@@ -444,6 +440,7 @@ const EventDetails = ({ }) => {
       setBookingLoading(false);
     }
   };
+
   useEffect(() => {
     if (event?.eventLocation_Lat_Lng_VenueName) {
       const [lat, lng] = event.eventLocation_Lat_Lng_VenueName.split(",");
@@ -461,15 +458,15 @@ const EventDetails = ({ }) => {
 
   return (
     <div className="bg-black">
-      <div className="px-4 py-10 md:px-10 lg:px-20 xl:px-40">
-        <div className="flex flex-col lg:flex-row gap-8 xl:gap-12">
-          <div className="flex-1 flex justify-center my-4">
-            <img
-              src={event.imageField}
-              alt={event.name || "Event Image"}
-              className="w-full max-w-[463px] h-auto rounded-xl"
-            />
-          </div>
+  <div className="px-4 py-10 md:px-10 lg:px-20 xl:px-40">
+    <div className="flex flex-col lg:flex-row gap-8 xl:gap-12">
+      <div className="flex-1 flex justify-center my-4 overflow-hidden">
+        <img
+          src={event.imageField}
+          alt={event.name || "Event Image"}
+          className="w-full h-full object-cover rounded-xl"
+        />
+      </div>
           <div className="flex-1 text-white">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">{event.name}</h1>
             <h2 className="text-lg md:text-xl text-gray-400 mt-2">{event.tagline}</h2>
@@ -501,9 +498,6 @@ const EventDetails = ({ }) => {
                           />
                           <span>{option.display}</span>
                         </div>
-                        <span className="text-sm text-gray-400">
-                          {option.available} available
-                        </span>
                       </div>
                     ))
                   ) : (
@@ -536,13 +530,14 @@ const EventDetails = ({ }) => {
                 </div>
               )}
 
-              {userId ? (
+              {authLoading ? (
+                <div className="w-full h-[37px] bg-gray-300 animate-pulse rounded-[25px]" />
+              ) : authUser ? (
                 <button
                   onClick={handleBookNow}
                   disabled={bookingLoading || isSoldOut}
                   className={`bg-[#18181B] text-white w-full h-[37px] text-sm md:text-base font-semibold rounded-[25px] cursor-pointer ${bookingLoading ? 'opacity-50 cursor-not-allowed' : ''
-                    } ${isSoldOut ? 'bg-red-900/50 text-red-400' : 'hover:bg-gray-700'
-                    }`}
+                    } ${isSoldOut ? 'bg-red-900/50 text-red-400' : 'hover:bg-gray-700'}`}
                 >
                   {isSoldOut ? 'SOLD OUT' : bookingLoading ? 'Processing...' : 'Book Now'}
                 </button>
@@ -554,7 +549,6 @@ const EventDetails = ({ }) => {
                   Login to Book
                 </button>
               )}
-
               <div className="flex gap-6 text-white text-2xl md:text-xl cursor-pointer">
                 <FaHeart className="hover:text-red-500" />
                 <FaShareAlt className="hover:text-gray-400" />
@@ -603,17 +597,13 @@ const EventDetails = ({ }) => {
           </div>
         </div>
       </div>
-                {/* {Venue Details} */}
+
+      {/* Venue Details */}
       <div className="bg-black py-12 md:py-16 px-4 md:px-10 lg:px-20">
         <div className="flex flex-col lg:flex-row justify-center items-center gap-8 max-w-[1200px] mx-auto">
           <div className="w-full max-w-[425px]">
             <h2 className="text-white text-2xl font-bold mb-4">Venue Details</h2>
             <p className="text-white mb-4">{event?.location}</p>
-            {event?.eventLocation_Lat_Lng_VenueName && (
-              <p className="text-white mb-4">
-                Coordinates: {event.eventLocation_Lat_Lng_VenueName.split(",").slice(0, 2).join(", ")}
-              </p>
-            )}
           </div>
           <div className="w-full max-w-[676px] h-[400px]">
             {mapUrl ? (
