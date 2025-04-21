@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import TwoArrows from "../assets/TwoArrows.png";
 import Arrows from "../assets/Arrows.png";
 import Users from "../assets/Users.png";
@@ -10,34 +12,44 @@ import DiscoverConcerts from "../assets/DiscoverConcerts.png";
 import Transfer from "../assets/transfer.gif";
 import Group from "../assets/group.gif";
 import Sell from "../assets/sell.gif";
-import EventPoster1 from "../assets/EventPoster1.png";
-import EventPoster2 from "../assets/EventPoster2.png";
-import EventPoster3 from "../assets/EventPoster3.png";
-import EventPoster4 from "../assets/EventPoster4.png";
 import { fetchEvents, storage, subscribeToEvents } from "../api/appwriteConfig";
 
 const Home = () => {
   const sliderRef = useRef(null);
   const [events, setEvents] = useState([]);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const getEvents = async () => {
       const eventData = await fetchEvents();
-  
+
       const updatedEvents = eventData.map((event) => {
         let imageUrl = `https://cloud.appwrite.io/v1/storage/buckets/66dd97eb0009f68104ef/files/${event.imageFileId}/view?project=67699acf002ecc80c89f&mode=admin`;
-  
+
         return { ...event, imageField: imageUrl };
       });
-  
+
       setEvents(updatedEvents);
     };
-  
+
     getEvents();
     const unsubscribe = subscribeToEvents(getEvents);
     return () => unsubscribe();
   }, []);
-  
+
+  const handleDiveInClick = () => {
+    if (user) {
+      navigate('/events');
+    } else {
+      // You can show a toast or alert here if you want
+      console.log("Please login to view events");
+    }
+  };
+
+  const handleEventClick = (eventId) => {
+    navigate(`/event-details/${eventId}`);
+  };
 
   const carouselSettings = {
     dots: true,
@@ -101,17 +113,19 @@ const Home = () => {
         {/* Merged Section: "Dive In" + Features */}
         <div className="flex flex-col items-center justify-center gap-6 min-h-[500px]">
           {/* "Dive In" Button */}
-          <div className="group w-[140px] h-[50px] sm:w-[165px] sm:h-[58px] rounded-full cursor-pointer flex items-center justify-center relative overflow-hidden transition-all duration-500 border border-white/34 hover:shadow-[0_0_25px_5px_rgba(255,255,255,0.4)]">
-  {/* Hover Gradient Background */}
-  <div className="absolute inset-0 bg-gradient-to-r from-[#000FFF] to-[#FF008C] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
-  
-  {/* Text Content */}
-  <button className="relative z-10 text-white font-Karla text-[18px] sm:text-[22px] md:text-[24px] leading-[100%] tracking-[0.05em] transition-colors duration-500">
-    Dive In
-  </button>
-</div>
+          {/* Enhanced "Dive In" Button */}
+          <div
+            className="group w-[140px] h-[50px] sm:w-[165px] sm:h-[58px] rounded-full cursor-pointer flex items-center justify-center relative overflow-hidden transition-all duration-500 border border-white/34 hover:shadow-[0_0_25px_5px_rgba(255,255,255,0.4)]"
+            onClick={handleDiveInClick}
+          >
+            {/* Hover Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#000FFF] to-[#FF008C] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
 
-
+            {/* Text Content */}
+            <button className="relative z-10 text-white font-Karla text-[18px] sm:text-[22px] md:text-[24px] leading-[100%] tracking-[0.05em] transition-colors duration-500">
+              Dive In
+            </button>
+          </div>
 
           {/* Feature Section */}
           <div className="text-white p-4 sm:p-10 w-full flex flex-col md:flex-row gap-8 md:gap-4 lg:gap-8 justify-center items-center">
@@ -185,7 +199,11 @@ const Home = () => {
             <Slider {...carouselSettings}>
               {events.length > 0 ? (
                 events.map((event, index) => (
-                  <div key={index} className="px-2 sm:px-4 focus:outline-none">
+                  <div
+                    key={index}
+                    className="px-2 sm:px-4 focus:outline-none cursor-pointer"
+                    onClick={() => handleEventClick(event.$id)}
+                  >
                     <div className="w-full max-w-[280px] sm:max-w-[335px] mx-auto bg-[#1a1a1a] text-white rounded-lg shadow-lg overflow-hidden">
                       <div className="aspect-w-4 aspect-h-3">
                         <img

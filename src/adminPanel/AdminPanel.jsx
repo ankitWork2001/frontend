@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import EventList from "../pages/EventList.jsx";
 import { Client, Databases, ID, Storage } from "appwrite";
 import { isAdmin } from "./authHelper.jsx";
+import { MAPS_CONFIG } from "../config/config.jsx";
 
 const AdminPanel = () => {
      const [showEventList, setShowEventList] = useState(false);
@@ -10,19 +11,149 @@ const AdminPanel = () => {
      const [loading, setLoading] = useState(false);
      const [admin, setAdmin] = useState(false);
      const [phases, setPhases] = useState([]);
-     const [categories, setCategories] = useState({
-          "General Admission": { price: "", quantity: "", selected: false },
-          "VIP": { price: "", quantity: "", selected: false },
-          "VVIP": { price: "", quantity: "", selected: false }
-     });
-     const [allCategories, setAllCategories] = useState([]);
+     const [categories, setCategories] = useState([]);
+     const [showMapModal, setShowMapModal] = useState(false);
+     const [selectedLocation, setSelectedLocation] = useState(null);
+     const [venueName, setVenueName] = useState("");
+     const [mapUrl, setMapUrl] = useState('');
+     const [map, setMap] = useState(null);
+
+     // Map related refs and state
+     const modalMapRef = useRef(null);
+     const modalMarkerRef = useRef(null);
+     const autocompleteRef = useRef(null);
+     const resultMapRef = useRef(null);
+     const resultMarkerRef = useRef(null);
+     const [location, setLocation] = useState(null); // { lat, lng, address }
 
      useEffect(() => {
           isAdmin().then((res) => {
-               console.log("Admin Status:", res);
                setAdmin(res);
           });
      }, []);
+
+     // Get Address from LatLng
+     const getAddressFromCoords = async (lat, lng) => {
+          const res = await fetch(
+               `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${MAPS_CONFIG.apiKey}`
+          );
+          const data = await res.json();
+
+          if (!data.results?.[0]) return "Address not found";
+
+          // Extract only the street address, locality, and city components
+          const components = data.results[0].address_components;
+          const streetNumber = components.find(c => c.types.includes('street_number'))?.long_name || '';
+          const route = components.find(c => c.types.includes('route'))?.long_name || '';
+          const locality = components.find(c => c.types.includes('locality'))?.long_name || '';
+          const city = components.find(c => c.types.includes('administrative_area_level_2'))?.long_name || '';
+
+          // Construct address without Plus Code
+          const addressParts = [];
+          if (streetNumber) addressParts.push(streetNumber);
+          if (route) addressParts.push(route);
+          if (locality) addressParts.push(locality);
+          if (city && !locality.includes(city)) addressParts.push(city);
+
+          return addressParts.join(', ') || data.results[0].formatted_address;
+     };
+
+     // Initialize Modal Map
+     useEffect(() => {
+          if (!showMapModal || !window.google || !modalMapRef.current) return;
+
+          const map = new window.google.maps.Map(modalMapRef.current, {
+               center: { lat: 28.6139, lng: 77.209 },
+               zoom: 14,
+          });
+
+          const marker = new window.google.maps.Marker({
+               map,
+               draggable: true,
+          });
+
+          const loadGoogleMaps = () => {
+               const script = document.createElement('script');
+               script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_CONFIG.apiKey}&libraries=places&callback=initMap`;
+               script.async = true;
+               script.defer = true;
+               document.head.appendChild(script);
+          };
+
+          window.initMap = () => {
+               // This will be called when Maps API is loaded
+               console.log('Google Maps API loaded');
+          };
+
+          loadGoogleMaps();
+
+          modalMarkerRef.current = marker;
+
+          map.addListener("click", async (e) => {
+               const lat = e.latLng.lat();
+               const lng = e.latLng.lng();
+               const address = await getAddressFromCoords(lat, lng);
+               marker.setPosition({ lat, lng });
+               map.setCenter({ lat, lng });
+               setLocation({ lat, lng, address });
+               setVenueName(address.split(",")[0] || address); // Set venue name as first part of address
+          });
+
+          marker.addListener("dragend", async (e) => {
+               const lat = e.latLng.lat();
+               const lng = e.latLng.lng();
+               const address = await getAddressFromCoords(lat, lng);
+               marker.setPosition({ lat, lng });
+               map.setCenter({ lat, lng });
+               setLocation({ lat, lng, address });
+               setVenueName(address.split(",")[0] || address);
+          });
+
+          // Autocomplete
+          if (autocompleteRef.current) {
+               const auto = document.createElement("gmpx-place-autocomplete");
+               auto.setAttribute("style", "width: 100%; padding: 8px; font-size: 16px;");
+               auto.setAttribute("placeholder", "Search location...");
+               auto.addEventListener("gmpx-placechange", async (e) => {
+                    const place = e.detail;
+                    const lat = place.location.latitude;
+                    const lng = place.location.longitude;
+                    const address = place.address.formattedAddress;
+                    marker.setPosition({ lat, lng });
+                    map.setCenter({ lat, lng });
+                    setLocation({ lat, lng, address });
+                    setVenueName(address.split(",")[0] || address);
+               });
+               autocompleteRef.current.innerHTML = "";
+               autocompleteRef.current.appendChild(auto);
+          }
+     }, [showMapModal]);
+
+     // Initialize Result Map (below Add Location)
+     useEffect(() => {
+          if (!location || !window.google || !resultMapRef.current) return;
+
+          const map = new window.google.maps.Map(resultMapRef.current, {
+               center: { lat: location.lat, lng: location.lng },
+               zoom: 15,
+          });
+
+          const marker = new window.google.maps.Marker({
+               position: { lat: location.lat, lng: location.lng },
+               map,
+          });
+
+          resultMarkerRef.current = marker;
+
+          // Update event data with location when location changes
+          if (location && venueName) {
+               setEventData(prev => ({
+                    ...prev,
+                    eventLocation_Lat_Lng_VenueName: `${location.lat},${location.lng},${venueName}`,
+                    location: location.address
+               }));
+          }
+     }, [location]);
 
      const client = new Client()
           .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT)
@@ -36,6 +167,7 @@ const AdminPanel = () => {
           price: "",
           eventInfo: "",
           location: "",
+          eventLocation_Lat_Lng_VenueName: "",
           organiserId: "",
           tags: "",
           totalTickets: "",
@@ -87,44 +219,17 @@ const AdminPanel = () => {
           }
      };
 
-     const handleCategoryChange = (category) => {
-          setCategories(prev => ({
-               ...prev,
-               [category]: {
-                    ...prev[category],
-                    selected: !prev[category]?.selected
-               }
-          }));
-     };
-
-     const handleCategoryFieldChange = (category, field, value) => {
-          setCategories(prev => ({
-               ...prev,
-               [category]: {
-                    ...prev[category],
-                    [field]: value
-               }
-          }));
-     };
 
      // In the addPhase function
      const addPhase = () => {
-          // Reset categories when adding a new phase
-          setCategories({
-               "General Admission": { price: "", quantity: "", selected: false },
-               "VIP": { price: "", quantity: "", selected: false },
-               "VVIP": { price: "", quantity: "", selected: false }
-          });
-
+          setCategories([]); // Reset to empty array instead of static categories
           const newPhase = { name: "", startDate: "", endDate: "" };
 
-          // If there are existing phases, set the new phase's start date to the previous phase's end date
           if (phases.length > 0) {
                const lastPhase = phases[phases.length - 1];
                newPhase.startDate = lastPhase.endDate || "";
           }
 
-          // Ensure that new phases are added properly to avoid removing data from the previous phases
           setPhases([...phases, newPhase]);
      };
 
@@ -136,16 +241,10 @@ const AdminPanel = () => {
                [field]: value
           };
 
-          // If we're updating the name of a phase, reset categories
           if (field === 'name') {
-               setCategories({
-                    "General Admission": { price: "", quantity: "", selected: false },
-                    "VIP": { price: "", quantity: "", selected: false },
-                    "VVIP": { price: "", quantity: "", selected: false }
-               });
+               setCategories([]); // Reset categories when phase name changes
           }
 
-          // If we're updating the end date of a phase, ensure the start date for the next phase is set correctly
           if (field === 'endDate' && index < newPhases.length - 1) {
                newPhases[index + 1] = {
                     ...newPhases[index + 1],
@@ -160,32 +259,51 @@ const AdminPanel = () => {
      const handleEdit = (index) => {
           const eventToEdit = events[index];
 
-          // Start with default empty categories
-          const updatedCategories = {
-               "General Admission": { price: "", quantity: "", selected: false },
-               "VIP": { price: "", quantity: "", selected: false },
-               "VVIP": { price: "", quantity: "", selected: false }
-          };
+          // Parse location data if it exists
+          if (eventToEdit.eventLocation_Lat_Lng_VenueName) {
+               const [lat, lng, ...venueParts] = eventToEdit.eventLocation_Lat_Lng_VenueName.split(",");
+               if (lat && lng) {
+                    setLocation({
+                         lat: parseFloat(lat),
+                         lng: parseFloat(lng),
+                         address: eventToEdit.location
+                    });
+                    setVenueName(venueParts.join(","));
+               }
+          }
 
-          // Get all phases
+          // Load categories from the event
+          const loadedCategories = eventToEdit.categories?.map(cat => {
+               const [name, price, quantity] = cat.split(":");
+               return { name, price, quantity };
+          }) || [];
+
+          // Get all phases - fixed date parsing
           const loadedPhases = eventToEdit.phase?.map(p => {
                if (typeof p === 'string') {
-                    const [name, startDate, endDate] = p.split(":");
-                    return { name, startDate, endDate };
+                    // Split the phase string into parts
+                    const parts = p.split(":");
+                    if (parts.length >= 3) {
+                         // The format is "PhaseName: StartDate: EndDate"
+                         const name = parts[0].trim();
+                         // The dates are already in readable format (e.g., "January 1, 2023")
+                         // We need to convert them back to YYYY-MM-DD format for the date input
+                         const startDate = parts[1] ? new Date(parts[1].trim()).toISOString().split('T')[0] : "";
+                         const endDate = parts[2] ? new Date(parts[2].trim()).toISOString().split('T')[0] : "";
+                         return { name, startDate, endDate };
+                    }
                }
+               // Fallback for invalid format
                return { name: p, startDate: "", endDate: "" };
           }) || [];
 
-          // Set the loaded phases and categories correctly
-          setCategories(updatedCategories);
+          setCategories(loadedCategories);
           setPhases(loadedPhases);
-
-          // Store all categories in a ref or state to use during submission
-          setAllCategories(eventToEdit.categories || []);
 
           setEventData({
                ...eventData,
                ...eventToEdit,
+               eventLocation_Lat_Lng_VenueName: eventToEdit.eventLocation_Lat_Lng_VenueName || "",
                existingImage: eventToEdit.imageField,
                image: null
           });
@@ -211,6 +329,25 @@ const AdminPanel = () => {
                     setLoading(false);
                }
           }
+     };
+
+     const addCategory = () => {
+          setCategories([...categories, { name: "", price: "", quantity: "" }]);
+     };
+
+     const removeCategory = (index) => {
+          const newCategories = [...categories];
+          newCategories.splice(index, 1);
+          setCategories(newCategories);
+     };
+
+     const handleCategoryChange = (index, field, value) => {
+          const newCategories = [...categories];
+          newCategories[index] = {
+               ...newCategories[index],
+               [field]: value
+          };
+          setCategories(newCategories);
      };
 
      const formatTime = (time) => {
@@ -275,34 +412,36 @@ const AdminPanel = () => {
                          return `${phase.name.trim()}: ${readableStart}:${readableEnd}`;
                     });
 
-
-
-
                // Get current phase name
                const currentPhase = processedPhases.length > 0
                     ? processedPhases[processedPhases.length - 1].split(":")[0].trim()
                     : "";
 
                // Format NEW categories for current phase
-               const newCategories = Object.entries(categories)
-                    .filter(([_, data]) => data.selected)
-                    .map(([name, data]) =>
-                         `${name.trim()}:${data.price}:${data.quantity}${currentPhase ? `:${currentPhase}` : ''}`
+               const newCategories = categories
+                    .filter(cat => cat.name && cat.name.trim() !== "")
+                    .map(cat =>
+                         `${cat.name.trim()}:${cat.price}:${cat.quantity}${currentPhase ? `:${currentPhase}` : ''}`
                     );
 
-               // Combine with existing categories from other phases
                let allCategoriesCombined = [];
 
                if (editingIndex !== null) {
-                    // For edits, preserve existing categories from other phases
+                    // For edits, preserve ALL existing categories from ALL phases
                     const existingCategories = events[editingIndex].categories || [];
+
+                    // Fixed this part - preserve all existing categories
                     allCategoriesCombined = [
-                         ...existingCategories.filter(cat => {
-                              // Keep categories that don't belong to current phase
-                              const parts = cat.split(':');
-                              return parts.length < 4 || parts[3] !== currentPhase;
-                         }),
-                         ...newCategories
+                         ...existingCategories, // Keep all existing categories
+                         ...newCategories.filter(newCat => {
+                              // Only add new categories that don't already exist for the current phase
+                              const newCatName = newCat.split(':')[0];
+                              return !existingCategories.some(existingCat => {
+                                   const existingCatParts = existingCat.split(':');
+                                   return existingCatParts[0] === newCatName &&
+                                        existingCatParts[3] === currentPhase;
+                              });
+                         })
                     ];
                } else {
                     // For new events, just use the new categories
@@ -315,6 +454,7 @@ const AdminPanel = () => {
                     eventInfo: eventData.eventInfo,
                     categories: allCategoriesCombined,
                     location: eventData.location,
+                    eventLocation_Lat_Lng_VenueName: eventData.eventLocation_Lat_Lng_VenueName,
                     organiserId: eventData.organiserId.toString(),
                     tags: Array.isArray(eventData.tags)
                          ? eventData.tags
@@ -360,6 +500,7 @@ const AdminPanel = () => {
                     price: "",
                     eventInfo: "",
                     location: "",
+                    eventLocation_Lat_Lng_VenueName: "",
                     organiserId: "",
                     tags: "",
                     totalTickets: "",
@@ -369,11 +510,7 @@ const AdminPanel = () => {
                     date: "",
                     time: ""
                });
-               setCategories({
-                    "General Admission": { price: "", quantity: "", selected: false },
-                    "VIP": { price: "", quantity: "", selected: false },
-                    "VVIP": { price: "", quantity: "", selected: false }
-               });
+               setCategories([]);
                setPhases([]);
           } catch (error) {
                console.error("Error saving event:", error);
@@ -382,10 +519,21 @@ const AdminPanel = () => {
                setLoading(false);
           }
      };
+     useEffect(() => {
+          if (eventData.eventLocation_Lat_Lng_VenueName) {
+               const [lat, lng, venueName] = eventData.eventLocation_Lat_Lng_VenueName.split(",");
+               if (lat && lng) {
+                    const location = `${lat.trim()},${lng.trim()}`;
+                    // Updated URL with zoom parameter and proper formatting
+                    const url = `https://www.google.com/maps/embed/v1/view?key=${MAPS_CONFIG.apiKey}&center=${location}&zoom=15&maptype=roadmap`;
+                    setMapUrl(url);
+               }
+          }
+     }, [eventData.eventLocation_Lat_Lng_VenueName]);
 
      return (
           <div className="flex flex-col md:flex-row min-h-screen bg-gray-900">
-               {/* Sidebar */}
+               {/* Sidebar - remains unchanged */}
                <aside className="w-full md:w-1/4 bg-gray-800 p-4 md:p-5">
                     <div className="flex flex-row md:flex-col space-x-2 md:space-x-0 md:space-y-4">
                          {admin && (
@@ -417,7 +565,7 @@ const AdminPanel = () => {
                          <form onSubmit={handleSubmit} className="bg-gray-800 p-4 rounded-lg">
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                    {Object.keys(eventData).map((key, index) => (
-                                        key !== "image" && key !== "existingImage" && (
+                                        key !== "image" && key !== "existingImage" && key !== "eventLocation_Lat_Lng_VenueName" && key !== "location" && (
                                              <div key={index} className="bg-gray-700 p-3 rounded-md">
                                                   <label className="block text-gray-300 text-sm mb-1 capitalize">{key}</label>
                                                   <input
@@ -431,9 +579,88 @@ const AdminPanel = () => {
                                              </div>
                                         )
                                    ))}
+
+                                   {/* Location Section - Modified */}
+                                   <div className="bg-gray-700 p-3 rounded-md">
+                                        <label className="block text-gray-300 text-sm mb-1">Event Location</label>
+
+                                        {/* Button to open map modal */}
+                                        <button
+                                             type="button"
+                                             onClick={() => setShowMapModal(true)}
+                                             className="w-full bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-md mb-3"
+                                        >
+                                             📍 Select Location on Map
+                                        </button>
+
+                                        {/* Display selected location details */}
+                                        <textarea
+                                             readOnly
+                                             rows={4}
+                                             value={
+                                                  location
+                                                       ? `Venue: ${venueName}\nLatitude: ${location.lat}\nLongitude: ${location.lng}\nAddress: ${location.address}`
+                                                       : "No location selected"
+                                             }
+                                             className="w-full p-3 bg-gray-800 text-white rounded-md border border-gray-600 resize-none"
+                                        />
+
+                                        {/* Venue Name Input */}
+                                        <input
+                                             type="text"
+                                             placeholder="Venue Name"
+                                             value={venueName}
+                                             onChange={(e) => setVenueName(e.target.value)}
+                                             className="w-full p-2 bg-gray-800 text-white rounded-md border border-gray-600 mt-3"
+                                        />
+
+                                        {/* Map Preview */}
+                                        {location && (
+                                             <div className="mt-4">
+                                                  <h4 className="text-gray-300 text-sm mb-2">Location Preview</h4>
+                                                  <div
+                                                       ref={resultMapRef}
+                                                       className="w-full h-64 rounded-md border border-gray-600"
+                                                  />
+                                             </div>
+                                        )}
+                                   </div>
                               </div>
 
-                              {/* Phases Section */}
+                              {/* Map Modal */}
+                              {showMapModal && (
+                                   <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                                        <div className="bg-gray-800 p-6 rounded-lg w-full max-w-3xl relative">
+                                             <button
+                                                  onClick={() => setShowMapModal(false)}
+                                                  className="absolute top-4 right-4 text-white text-xl"
+                                             >
+                                                  ❌
+                                             </button>
+
+                                             <h3 className="text-white text-xl mb-4">Select Event Location</h3>
+
+                                             {/* Autocomplete Search */}
+                                             <div ref={autocompleteRef} className="mb-4" />
+
+                                             {/* Map Container */}
+                                             <div
+                                                  ref={modalMapRef}
+                                                  className="w-full h-96 rounded-md"
+                                             />
+
+                                             {/* Confirm Selection Button */}
+                                             <button
+                                                  onClick={() => setShowMapModal(false)}
+                                                  className="w-full bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-md mt-4"
+                                             >
+                                                  Confirm Location
+                                             </button>
+                                        </div>
+                                   </div>
+                              )}
+
+                              {/* Phases Section - remains unchanged */}
                               <div className="mt-4 bg-gray-700 p-3 rounded-md">
                                    <label className="block text-gray-300 text-sm mb-1">Event Phases</label>
                                    <button type="button" onClick={addPhase} className="bg-blue-500 text-white p-2 rounded-md">Add Phase</button>
@@ -455,7 +682,7 @@ const AdminPanel = () => {
                                                                  value={phase.startDate || ""}
                                                                  onChange={(e) => handlePhaseChange(index, 'startDate', e.target.value)}
                                                                  className="w-full p-2 bg-gray-800 text-white rounded-md border border-gray-600"
-                                                                 disabled={index > 0} // Start date is auto-set for phases after the first one
+                                                                 disabled={index > 0}
                                                             />
                                                        </div>
                                                        <div>
@@ -473,52 +700,68 @@ const AdminPanel = () => {
                                    </div>
                               </div>
 
-                              {/* Categories Selection */}
+                              {/* Categories Selection - remains unchanged */}
                               <div className="mt-4 bg-gray-700 p-3 rounded-md">
-                                   <label className="block text-gray-300 text-sm mb-1">Select Categories</label>
+                                   <div className="flex justify-between items-center mb-2">
+                                        <label className="block text-gray-300 text-sm">Event Categories</label>
+                                        <button
+                                             type="button"
+                                             onClick={addCategory}
+                                             className="bg-blue-500 text-white px-3 py-1 rounded-md text-sm"
+                                        >
+                                             Add Category
+                                        </button>
+                                   </div>
                                    <div className="space-y-4">
-                                        {Object.entries(categories).map(([category, data]) => (
-                                             <div key={category} className="bg-gray-600 p-3 rounded-md">
-                                                  <div className="flex items-center mb-2">
-                                                       <input
-                                                            type="checkbox"
-                                                            id={`category-${category}`}
-                                                            checked={data.selected || false}
-                                                            onChange={() => handleCategoryChange(category)}
-                                                            className="mr-2"
-                                                       />
-                                                       <label htmlFor={`category-${category}`} className="text-gray-300">{category}</label>
-                                                  </div>
-                                                  {data.selected && (
-                                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                                                            <div>
-                                                                 <label className="block text-gray-300 text-sm mb-1">Price</label>
-                                                                 <input
-                                                                      type="text"
-                                                                      value={data.price}
-                                                                      onChange={(e) => handleCategoryFieldChange(category, "price", e.target.value)}
-                                                                      placeholder="Price"
-                                                                      className="w-full p-2 bg-gray-800 text-white rounded-md border border-gray-600"
-                                                                 />
-                                                            </div>
-                                                            <div>
-                                                                 <label className="block text-gray-300 text-sm mb-1">Quantity</label>
-                                                                 <input
-                                                                      type="text"
-                                                                      value={data.quantity}
-                                                                      onChange={(e) => handleCategoryFieldChange(category, "quantity", e.target.value)}
-                                                                      placeholder="Quantity"
-                                                                      className="w-full p-2 bg-gray-800 text-white rounded-md border border-gray-600"
-                                                                 />
-                                                            </div>
+                                        {categories.map((category, index) => (
+                                             <div key={index} className="bg-gray-600 p-3 rounded-md">
+                                                  <div className="flex justify-between items-center mb-2">
+                                                       <div className="flex-1">
+                                                            <label className="block text-gray-300 text-sm mb-1">Category Name</label>
+                                                            <input
+                                                                 type="text"
+                                                                 value={category.name}
+                                                                 onChange={(e) => handleCategoryChange(index, 'name', e.target.value)}
+                                                                 placeholder="Category Name"
+                                                                 className="w-full p-2 bg-gray-800 text-white rounded-md border border-gray-600"
+                                                            />
                                                        </div>
-                                                  )}
+                                                       <button
+                                                            type="button"
+                                                            onClick={() => removeCategory(index)}
+                                                            className="ml-2 bg-red-500 text-white p-2 rounded-md text-xs"
+                                                       >
+                                                            Remove
+                                                       </button>
+                                                  </div>
+                                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                       <div>
+                                                            <label className="block text-gray-300 text-sm mb-1">Price</label>
+                                                            <input
+                                                                 type="text"
+                                                                 value={category.price}
+                                                                 onChange={(e) => handleCategoryChange(index, 'price', e.target.value)}
+                                                                 placeholder="Price"
+                                                                 className="w-full p-2 bg-gray-800 text-white rounded-md border border-gray-600"
+                                                            />
+                                                       </div>
+                                                       <div>
+                                                            <label className="block text-gray-300 text-sm mb-1">Quantity</label>
+                                                            <input
+                                                                 type="text"
+                                                                 value={category.quantity}
+                                                                 onChange={(e) => handleCategoryChange(index, 'quantity', e.target.value)}
+                                                                 placeholder="Quantity"
+                                                                 className="w-full p-2 bg-gray-800 text-white rounded-md border border-gray-600"
+                                                            />
+                                                       </div>
+                                                  </div>
                                              </div>
                                         ))}
                                    </div>
                               </div>
 
-                              {/* Image Upload Section */}
+                              {/* Image Upload Section - remains unchanged */}
                               <div className="mt-4 bg-gray-700 p-3 rounded-md">
                                    <label className="block text-gray-300 text-sm mb-1">Upload Image</label>
                                    <input
@@ -539,7 +782,7 @@ const AdminPanel = () => {
                                    )}
                               </div>
 
-                              {/* Submit Button */}
+                              {/* Submit Button - remains unchanged */}
                               <div className="mt-6 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                                    <button
                                         type="submit"

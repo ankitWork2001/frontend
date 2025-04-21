@@ -4,8 +4,9 @@ import { FaHeart, FaShareAlt, FaChevronDown, FaChevronUp } from "react-icons/fa"
 import { useCart } from "../context/CartContext";
 import { getEventDetails, createOrder, databases, ID, createTransaction, getRazorpayKey, updateTicketQuantity, storage } from "../api/appwriteConfig";
 import QRCode from 'qrcode';
+import { MAPS_CONFIG } from "../config/config";
 
-const EventDetails = () => {
+const EventDetails = ({ }) => {
   const navigate = useNavigate();
   const { eventId } = useParams();
   const { quantity, selectedTicket, increment, decrement, updateSelectedTicket, userId, user } = useCart();
@@ -15,6 +16,7 @@ const EventDetails = () => {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [ticketsAvailable, setTicketsAvailable] = useState({});
+  const [mapUrl, setMapUrl] = useState("");
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -31,8 +33,6 @@ const EventDetails = () => {
 
         const eventData = await getEventDetails(eventId);
         if (!eventData) throw new Error("Event data not found");
-
-        console.log("RAW EVENT DATA FROM DB:", eventData); // Debug log
 
         const imageUrl = `https://cloud.appwrite.io/v1/storage/buckets/66dd97eb0009f68104ef/files/${eventData.imageFileId}/view?project=67699acf002ecc80c89f&mode=admin`;
 
@@ -78,6 +78,25 @@ const EventDetails = () => {
             updateSelectedTicket(activeTickets[0]);
           }
         }
+        // Generate map URL if coordinates exist
+        if (eventData.eventLocation_Lat_Lng_VenueName) {
+          const [lat, lng, venueName] = eventData.eventLocation_Lat_Lng_VenueName.split(",").map(item => item.trim());
+          if (lat && lng) {
+            const apiKey = import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY;
+            if (!apiKey) {
+              console.warn("Google Maps API key is missing");
+              return;
+            }
+
+            // Using Maps Embed API
+            const embedUrl = `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${lat},${lng}`;
+
+            // Alternatively, you could use Static Maps API
+            // const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C${lat},${lng}&key=${apiKey}`;
+
+            setMapUrl(embedUrl);
+          }
+        }
       } catch (err) {
         console.error("Event fetch failed:", err);
         setError(err.message || "Failed to load event");
@@ -91,19 +110,19 @@ const EventDetails = () => {
 
   const getTicketOptions = () => {
     if (!event?.categories || !Array.isArray(event.categories)) return [];
-  
+
     const currentPhase = Array.isArray(event.phase)
       ? event.phase.filter(Boolean).slice(-1)[0]?.split(':')[0]?.trim()
       : null;
-  
+
     return event.categories
       .filter(cat => {
         try {
           const parts = cat.split(':').map(item => item.trim());
           if (parts.length < 4) return false;
-  
+
           const [name, price, qty, phaseTag] = parts;
-  
+
           return parseInt(qty) > 0 && phaseTag === currentPhase;
         } catch (err) {
           console.error("Error processing category:", cat, err);
@@ -121,9 +140,9 @@ const EventDetails = () => {
         };
       });
   };
-  
-  
-  
+
+
+
 
   const ticketOptions = getTicketOptions();
   const currentTicket = selectedTicket || ticketOptions[0];
@@ -425,6 +444,16 @@ const EventDetails = () => {
       setBookingLoading(false);
     }
   };
+  useEffect(() => {
+    if (event?.eventLocation_Lat_Lng_VenueName) {
+      const [lat, lng] = event.eventLocation_Lat_Lng_VenueName.split(",");
+      if (lat && lng) {
+        const location = `${lat.trim()},${lng.trim()}`;
+        const url = `https://www.google.com/maps/embed/v1/place?key=${MAPS_CONFIG.apiKey}&q=${encodeURIComponent(location)}`;
+        setMapUrl(url);
+      }
+    }
+  }, [event]);
 
   if (loading) return <div className="text-white text-center py-10">Loading...</div>;
   if (error) return <div className="text-white text-center py-10">Error: {error}</div>;
@@ -571,6 +600,44 @@ const EventDetails = () => {
                 )) || <p>Loading event info...</p>}
               </ul>
             </div>
+          </div>
+        </div>
+      </div>
+                {/* {Venue Details} */}
+      <div className="bg-black py-12 md:py-16 px-4 md:px-10 lg:px-20">
+        <div className="flex flex-col lg:flex-row justify-center items-center gap-8 max-w-[1200px] mx-auto">
+          <div className="w-full max-w-[425px]">
+            <h2 className="text-white text-2xl font-bold mb-4">Venue Details</h2>
+            <p className="text-white mb-4">{event?.location}</p>
+            {event?.eventLocation_Lat_Lng_VenueName && (
+              <p className="text-white mb-4">
+                Coordinates: {event.eventLocation_Lat_Lng_VenueName.split(",").slice(0, 2).join(", ")}
+              </p>
+            )}
+          </div>
+          <div className="w-full max-w-[676px] h-[400px]">
+            {mapUrl ? (
+              <div className="mt-6 rounded-lg overflow-hidden h-full">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  frameBorder="0"
+                  style={{ border: 0 }}
+                  src={mapUrl}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+                <div className="mt-2 text-sm text-gray-600">
+                  {event.eventLocation_Lat_Lng_VenueName.split(",")[2]?.trim() ||
+                    "Event Location"}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-100 h-full flex items-center justify-center">
+                <p>Location map not available</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
