@@ -642,7 +642,7 @@ const EventDetails = ({ }) => {
         </div>
       </div>
 
-      <div className="bg-black py-12 md:py-16 px-4 md:px-10 lg:px-20 mb-16">
+      <div className="bg-black py-12 md:py-16 px-4 md:px-10 lg:px-20 ">
         <div className="max-w-[1200px] mx-auto">
           <h3 className="text-2xl md:text-3xl font-bold text-white mb-6 md:mb-8">
             Terms & Conditions
