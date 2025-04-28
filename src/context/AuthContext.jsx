@@ -129,11 +129,17 @@ export const AuthProvider = ({ children }) => {
                try {
                     await account.deleteSessions();
                } catch (sessionError) {
-                    console.warn("No active session to delete:", sessionError);
+                    if (sessionError.message.includes("missing scope")) {
+                         console.info("No session to delete. Proceeding to login.");
+                    } else {
+                         console.warn("Unexpected session deletion error:", sessionError);
+                    }
                }
 
                // ✅ Create new login session
-               await account.createEmailPasswordSession(email, password);
+               await account.createEmailPasswordSession(email, password, {
+                    scopes:['account']
+               });
 
                // ✅ Get logged-in user details
                const currentUser = await account.get();
