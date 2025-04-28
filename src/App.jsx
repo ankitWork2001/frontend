@@ -37,8 +37,10 @@ function App() {
           <Route path="/event-details/:eventId" element={<EventDetails />} />
 
           <Route path="/join-community" element={<JoinCommunity />} />
+          <Route path="/join-community/:groupId" element={<JoinCommunity />} />
           <Route path="/members-added" element={<MembersAdded />} />
           <Route path="/login-signup" element={<LoginPage />} />
+          <Route path="/login" element={<Navigate to="/login-signup" />} />
           <Route path="/profile" element={<Profile />} />
 
           {/* <Route path="/booking-confirmation" element={<BookingConfirmation />} /> */}
