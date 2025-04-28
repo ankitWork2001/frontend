@@ -1,77 +1,213 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { databases } from "../api/appwriteConfig"; 
+import { useAuth } from "../context/AuthContext"; 
 
 const JoinCommunity = () => {
+  const { groupId } = useParams();
+  console.log("Group ID from params:", groupId); 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const [group, setGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isMember, setIsMember] = useState(false);
+
+  useEffect(() => {
+    const fetchGroup = async () => {
+      try {
+        // Check if user is logged in
+        if (!user) {
+          navigate("/login", { 
+            state: { 
+              from: location.pathname,
+              message: "Please login to join this community"
+            } 
+          });
+          return;
+        }
+
+        // Validate groupId
+        if (!groupId) {
+          setError("Invalid group link");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch group details
+        const response = await databases.getDocument(
+          import.meta.env.VITE_APPWRITE_DATABASE_ID,
+          import.meta.env.VITE_APPWRITE_GROUPS_COLLECTION_ID,
+          groupId
+        );
+
+        if (!response) {
+          throw new Error("Group not found");
+        }
+
+        setGroup(response);
+        
+        // Check if current user is already a member
+        if (response.members && Array.isArray(response.members)) {
+          setIsMember(response.members.includes(user.$id));
+        } else {
+          // Initialize members array if it doesn't exist
+          setIsMember(false);
+        }
+
+        setLoading(false);
+      } catch (err) {
+        setError(err.message || "Failed to fetch group details or group doesn't exist");
+        setLoading(false);
+        console.error("Error fetching group:", err);
+      }
+    };
+
+    fetchGroup();
+  }, [groupId, user, navigate, location.pathname]);
+
+  const handleJoinGroup = async () => {
+    try {
+      if (!group || !user) return;
+
+      // Create updated members array
+      const currentMembers = Array.isArray(group.members) ? group.members : [];
+      const updatedMembers = [...currentMembers, user.$id];
+      
+      // Update document in Appwrite
+      const updatedGroup = await databases.updateDocument(
+        import.meta.env.VITE_APPWRITE_DATABASE_ID,
+        import.meta.env.VITE_APPWRITE_GROUPS_COLLECTION_ID,
+        group.$id,
+        {
+          members: updatedMembers
+        }
+      );
+
+      // Update local state with the response from Appwrite
+      setGroup(updatedGroup);
+      setIsMember(true);
+      
+      // Optionally navigate to group page or show success
+      navigate(`/join-community/${groupId}`);
+    } catch (err) {
+      console.error("Error joining group:", err);
+      setError("Failed to join group. Please try again.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-black">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-black">
+        <div className="text-white">{error}</div>
+        <button 
+          onClick={() => navigate("/")}
+          className="mt-4 text-white underline"
+        >
+          Go back home
+        </button>
+      </div>
+    );
+  }
+
+  if (!group) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-black">
+        <div className="text-white">Group not found</div>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <div
-        className="flex justify-center items-center min-h-screen bg-black"
-        style={{ marginTop: "-100px" }}
-      >
-        <div className="bg-white rounded-md shadow-lg w-100 h-75 text-center">
-          {/* Circle Image */}
-          <div
-            className="bg-gray-300 rounded-full mx-auto"
-            style={{ width: "80px", height: "80px", margin: "18px auto 10px" }}
-          ></div>
+    <div className="flex justify-center items-center min-h-screen bg-black" style={{ marginTop: "-100px" }}>
+      <div className="bg-white rounded-md shadow-lg w-100 h-75 text-center p-4 max-w-md mx-auto">
+        {/* Group Image */}
+        <div
+          className="bg-gray-300 rounded-full mx-auto flex items-center justify-center overflow-hidden"
+          style={{ width: "80px", height: "80px", margin: "18px auto 10px" }}
+        >
+          {group.groupImageId ? (
+            <img 
+              src={`${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${import.meta.env.VITE_APPWRITE_GROUP_PROFILE_PICS_BUCKET_ID}/files/${group.groupImageId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT}`}
+              alt="Group"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-gray-500">No Image</span>
+          )}
+        </div>
 
-          {/* Group Title */}
-          <h2 className="text-lg font-bold text-black m-0">
-            Concert Enthusiasts
-          </h2>
-          <p
-            className="text-xs text-gray-500 m-0"
-            style={{ marginBottom: "16px" }}
-          >
-            Rock Festival 2024
+        {/* Group Title */}
+        <h2 className="text-lg font-bold text-black m-0">{group.groupName}</h2>
+        <p className="text-xs text-gray-500 m-0" style={{ marginBottom: "16px" }}>
+          {group.eventname}
+        </p>
+
+        {/* Group Description (if exists) */}
+        {group.groupDescription && (
+          <p className="text-sm text-gray-700 mb-4">{group.groupDescription}</p>
+        )}
+
+        {/* Event Details */}
+        <div className="text-left mb-4">
+          <p className="text-sm font-semibold">Event Details:</p>
+          <p className="text-xs">
+            <span className="font-medium">Date:</span> {new Date(group.eventDate).toLocaleDateString()}
           </p>
+          <p className="text-xs">
+            <span className="font-medium">Location:</span> {group.eventLocation}
+          </p>
+        </div>
 
-          {/* Current Members Section */}
-          <div style={{ marginBottom: "20px" }}>
-            <div
-              className="flex justify-between items-center"
-              style={{ marginLeft: "20px", marginRight: "20px" }}
-            >
-              <p className="text-sm font-semibold text-black">
-                Current Members
-              </p>
-              <span className="text-xs text-gray-500 font-bold bg-gray-200 rounded-full px-2 py-1">
-                3
-              </span>
-            </div>
-
-            {/* Member Circles Below */}
-            <div
-              className="flex justify-start items-center gap-2"
-              style={{ marginLeft: "20px", marginTop: "12px" }}
-            >
-              {[...Array(3)].map((_, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-300 rounded-full"
-                  style={{ width: "21px", height: "21px" }}
-                ></div>
-              ))}
-            </div>
+        {/* Current Members Section */}
+        <div style={{ marginBottom: "20px" }}>
+          <div className="flex justify-between items-center mx-5">
+            <p className="text-sm font-semibold text-black">Current Members</p>
+            <span className="text-xs text-gray-500 font-bold bg-gray-200 rounded-full px-2 py-1">
+              {group.members ? group.members.length : 0}
+            </span>
           </div>
 
-          {/* Join Button */}
-          <Link to="/members-added">
-            <button
-              className="bg-black text-white rounded-lg cursor-pointer"
-              style={{
-                padding: "8px",
-                marginLeft: "20px",
-                marginRight: "20px",
-                width: "calc(100% - 40px)",
-              }}
-            >
-              Join Group
-            </button>
-          </Link>
+          {/* Member Circles Below */}
+          <div className="flex justify-start items-center gap-2 mx-5 mt-3">
+            {group.members && group.members.slice(0, 5).map((memberId, index) => (
+              <div
+                key={index}
+                className="bg-gray-300 rounded-full"
+                style={{ width: "21px", height: "21px" }}
+                title={`Member ${index + 1}`}
+              ></div>
+            ))}
+            {group.members && group.members.length > 5 && (
+              <span className="text-xs">+{group.members.length - 5} more</span>
+            )}
+          </div>
         </div>
+
+        {/* Join Button or Member Status */}
+        {isMember ? (
+          <div className="bg-gray-200 text-gray-700 rounded-lg mx-5 py-2">
+            Already a Member
+          </div>
+        ) : (
+          <button
+            onClick={handleJoinGroup}
+            className="bg-black text-white rounded-lg cursor-pointer hover:bg-gray-800 mx-5 w-[calc(100%-40px)] py-2"
+          >
+            Join Group
+          </button>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 
