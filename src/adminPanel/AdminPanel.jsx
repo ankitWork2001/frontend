@@ -312,19 +312,57 @@ const AdminPanel = () => {
      };
 
      const handleDelete = async (eventId) => {
-          if (window.confirm("Are you sure you want to delete this event?")) {
+          if (window.confirm("Are you sure you want to move this event to expired events?")) {
                setLoading(true);
                try {
+                    // Step 1: Fetch the event data first
+                    const eventToDelete = await databases.getDocument(
+                         import.meta.env.VITE_APPWRITE_DATABASE_ID,
+                         import.meta.env.VITE_APPWRITE_COLLECTION_ID,
+                         eventId
+                    );
+
+                    // Step 2: Prepare data for expiredEvents (handle optional fields)
+                    const expiredEventData = {
+                         name: eventToDelete.name,
+                         location: eventToDelete.location || "",
+                         imageFileId: eventToDelete.imageFileId || "",
+                         time: eventToDelete.time,
+                         sub_name: eventToDelete.sub_name || "",
+                         date: eventToDelete.date,
+                         price: eventToDelete.price,
+                         eventLocation_Lat_Lng_VenueName: eventToDelete.eventLocation_Lat_Lng_VenueName || "",
+                         organiserId: eventToDelete.organiserId,
+                         tags: eventToDelete.tags || [],
+                         eventInfo: eventToDelete.eventInfo,
+                         totalTickets: eventToDelete.totalTickets,
+                         ticketsLeft: eventToDelete.ticketsLeft,
+                         phase: eventToDelete.phase || [],
+                         categories: eventToDelete.categories || [],
+                         totalRevenue: eventToDelete.totalRevenue || "0",
+                         totalAttendees: eventToDelete.totalAttendees || "0",
+                    };
+
+                    // Step 3: Save to expiredEvents first
+                    await databases.createDocument(
+                         import.meta.env.VITE_APPWRITE_DATABASE_ID,
+                         "expiredEvents", // Make sure this collection exists!
+                         ID.unique(),
+                         expiredEventData
+                    );
+
+                    // Step 4: Only if save is successful, delete from main collection
                     await databases.deleteDocument(
                          import.meta.env.VITE_APPWRITE_DATABASE_ID,
                          import.meta.env.VITE_APPWRITE_COLLECTION_ID,
                          eventId
                     );
-                    alert("Event Deleted Successfully!");
-                    await fetchEvents();
+
+                    alert("Event moved to expired events successfully!");
+                    await fetchEvents(); // Refresh the list
                } catch (error) {
-                    console.error("Error deleting event:", error);
-                    alert(`Error deleting event: ${error.message}`);
+                    console.error("Error moving event to expired:", error);
+                    alert(`Failed to move event. Error: ${error.message}`);
                } finally {
                     setLoading(false);
                }
