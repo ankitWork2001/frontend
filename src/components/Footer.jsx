@@ -48,9 +48,13 @@ const Footer = () => {
             <a href="#" className="hover:underline">
               Terms & Conditions
             </a>
-            <a href="#" className="hover:underline">
+            <Link
+              to="/privacy-policy"
+              className="hover:underline"
+              onClick={() => window.scrollTo(0, 0)}
+            >
               Privacy Policy
-            </a>
+            </Link>
           </div>
 
           {/* Account Section */}

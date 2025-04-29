@@ -15,7 +15,8 @@ import AdminPanel from "./adminPanel/AdminPanel";
 import Footer from "./components/Footer";
 import Profile from "./pages/Profile";
 import AdminRoutes from "./routes/AdminRoutes";
-
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
   const { user, loading } = useAuth(); 
@@ -32,15 +33,15 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/account-delete" element={<AccountDelete />} />
-          
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           {/* ✅ Fix: Dynamic Route for Event Details */}
           <Route path="/event-details/:eventId" element={<EventDetails />} />
-
           <Route path="/join-community" element={<JoinCommunity />} />
           <Route path="/join-community/:groupId" element={<JoinCommunity />} />
           <Route path="/members-added" element={<MembersAdded />} />
           <Route path="/login-signup" element={<LoginPage />} />
           <Route path="/login" element={<Navigate to="/login-signup" />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile" element={<Profile />} />
 
           {/* <Route path="/booking-confirmation" element={<BookingConfirmation />} /> */}
