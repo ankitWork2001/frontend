@@ -75,7 +75,7 @@ const ResetPassword = () => {
                                    id="password"
                                    value={password}
                                    onChange={(e) => setPassword(e.target.value)}
-                                   className="w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                                   className="w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
                                    required
                                    minLength="8"
                               />
@@ -90,7 +90,7 @@ const ResetPassword = () => {
                                    id="confirmPassword"
                                    value={confirmPassword}
                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                   className="w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                                   className="w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
                                    required
                                    minLength="8"
                               />
@@ -99,7 +99,7 @@ const ResetPassword = () => {
                          <button
                               type="submit"
                               disabled={loading}
-                              className="w-full h-11 px-4 py-2 bg-black text-white rounded-md hover:bg-black transition-colors disabled:opacity-50"
+                              className="w-full h-11 px-4 py-2 bg-black text-white rounded-md hover:bg-black transition-colors disabled:opacity-50 cursor-pointer"
                          >
                               {loading ? "Processing..." : "Reset Password"}
                          </button>
