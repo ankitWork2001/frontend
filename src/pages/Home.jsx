@@ -3,12 +3,11 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import TwoArrows from "../assets/TwoArrows.png";
 import Arrows from "../assets/Arrows.png";
 import Users from "../assets/Users.png";
 import Map from "../assets/Map.png";
-import DiscoverConcerts from "../assets/DiscoverConcerts.png";
+import DecorativeConcert from "../assets/DecorativeConcert.jpg";
 import Transfer from "../assets/transfer.gif";
 import Group from "../assets/group.gif";
 import Sell from "../assets/sell.gif";
@@ -18,7 +17,6 @@ const Home = () => {
   const sliderRef = useRef(null);
   const [events, setEvents] = useState([]);
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   useEffect(() => {
     const getEvents = async () => {
@@ -39,12 +37,7 @@ const Home = () => {
   }, []);
 
   const handleDiveInClick = () => {
-    if (user) {
-      navigate('/events');
-    } else {
-      // You can show a toast or alert here if you want
-      console.log("Please login to view events");
-    }
+    navigate("/events"); 
   };
 
   const handleEventClick = (eventId) => {
@@ -60,7 +53,7 @@ const Home = () => {
     arrows: false,
     autoplay: true,
     autoplaySpeed: 2500,
-    cssEase: 'ease-in-out',
+    cssEase: "ease-in-out",
     swipeToSlide: true,
     draggable: true,
     pauseOnHover: true,
@@ -70,14 +63,14 @@ const Home = () => {
         settings: {
           slidesToShow: 3,
           slidesToScroll: 1,
-        }
+        },
       },
       {
         breakpoint: 1024,
         settings: {
           slidesToShow: 2,
           slidesToScroll: 1,
-        }
+        },
       },
       {
         breakpoint: 768,
@@ -85,8 +78,8 @@ const Home = () => {
           slidesToShow: 1,
           slidesToScroll: 1,
           centerMode: true,
-          centerPadding: '15%',
-        }
+          centerPadding: "15%",
+        },
       },
       {
         breakpoint: 480,
@@ -94,10 +87,10 @@ const Home = () => {
           slidesToShow: 1,
           slidesToScroll: 1,
           centerMode: true,
-          centerPadding: '10%',
-        }
-      }
-    ]
+          centerPadding: "10%",
+        },
+      },
+    ],
   };
 
   return (
@@ -139,8 +132,8 @@ const Home = () => {
                 Transfer Your Ticket
               </h1>
               <p className="text-sm sm:text-base">
-                Can't make it to the show? Easily transfer your ticket to a friend
-                and let them enjoy the event in your place.
+                Can't make it to the show? Easily transfer your ticket to a
+                friend and let them enjoy the event in your place.
               </p>
             </div>
 
@@ -175,19 +168,53 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Map and Discover Concerts Section */}
-        <div className="min-h-screen flex flex-col xl:flex-row items-center justify-center gap-6 md:gap-12 w-full px-4 mt-8 md:mt-0">
+        <div className="min-h-screen w-full px-4 py-12 bg-black flex flex-col xl:flex-row items-center justify-center gap-10">
+          {/* Map Image */}
           <img
             src={Map}
             alt="Map"
-            className="w-full max-w-[500px] h-auto md:h-[624px] object-contain"
+            className="w-[375px] h-[626px] rounded-[20px] object-cover"
           />
+
+          {/* Text Content */}
+          <div className="flex flex-col items-end justify-center text-white">
+            {/* Title */}
+            <h2
+              className="font-anton text-[64px] leading-[112.9999999999999%] tracking-[0.18em] text-right"
+              style={{ width: '355px', height: '360px', top: '838px', left: '429px' }}
+            >
+              Discover<br />
+              Concerts<br />
+              Tailored<br />
+              Just for<br />
+              You!
+            </h2>
+
+            {/* Description */}
+            <p
+              className="font-Cantarell  text-[20px] leading-[171%] tracking-[-1%] text-right mt-4"
+              style={{
+                width: '378px',
+                height: '124px',
+                backgroundColor: '#000', // Keep black background for visibility on black section
+              }}
+            >
+              Connect your Spotify account, and<br />
+              receive concert recommendations<br />
+              based on the artists you listen<br />
+              to the most.
+            </p>
+          </div>
+
+
+          {/* Concert Image */}
           <img
-            src={DiscoverConcerts}
-            alt="Discover Concerts"
-            className="w-full max-w-[500px] h-auto md:h-[625px] object-contain"
+            src={DecorativeConcert}
+            alt="Concert illustration"
+            className="w-[375px] h-[626px] rounded-[20px] object-cover"
           />
         </div>
+
 
         {/* Trending Events Section with Carousel */}
         <div className="w-full px-4 md:px-12 py-8">
@@ -213,16 +240,24 @@ const Home = () => {
                         />
                       </div>
                       <div className="p-4 space-y-2 min-h-[120px] flex flex-col justify-center">
-                        <h3 className="text-lg font-semibold line-clamp-1">{event.name}</h3>
-                        <p className="text-sm text-gray-400">Date: {event.date || "Not Available"}</p>
-                        <p className="text-md text-white">Rs. {event.price || "N/A"}</p>
+                        <h3 className="text-lg font-semibold line-clamp-1">
+                          {event.name}
+                        </h3>
+                        <p className="text-sm text-gray-400">
+                          Date: {event.date || "Not Available"}
+                        </p>
+                        <p className="text-md text-white">
+                          Rs. {event.price || "N/A"}
+                        </p>
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <h2 className="text-white text-xl sm:text-2xl">No Trending Events Available</h2>
+                  <h2 className="text-white text-xl sm:text-2xl">
+                    No Trending Events Available
+                  </h2>
                 </div>
               )}
             </Slider>
@@ -233,7 +268,8 @@ const Home = () => {
         <div className="w-full flex flex-col justify-center items-center gap-8 md:flex-row md:justify-between md:items-center py-8 px-4 md:px-8 lg:px-12">
           <div className="w-full md:w-1/2 flex flex-col items-center md:items-start gap-6 md:pl-8 lg:pl-12">
             <h1 className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-center md:text-left">
-              Last-minute change? <br /> No problem! <br /> Easily transfer your <br /> ticket to a friend!
+              Last-minute change? <br /> No problem! <br /> Easily transfer your{" "}
+              <br /> ticket to a friend!
             </h1>
             <button className="bg-white w-36 text-xl md:text-2xl text-black font-medium rounded-full shadow-md py-2 hover:bg-gray-200 transition h-12">
               Explore
@@ -259,7 +295,8 @@ const Home = () => {
           </div>
           <div className="w-full md:w-1/2 flex flex-col items-center md:items-start gap-6 md:pr-8 lg:pr-12">
             <h1 className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-center md:text-left">
-              Need to sell your ticket? <br /> Our platform makes it <br /> quick and secure!
+              Need to sell your ticket? <br /> Our platform makes it <br />{" "}
+              quick and secure!
             </h1>
             <button className="bg-white w-36 text-xl md:text-2xl text-black font-medium rounded-full shadow-md py-2 hover:bg-gray-200 transition h-12">
               Explore
