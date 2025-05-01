@@ -212,8 +212,23 @@ const EventDetails = ({ }) => {
         );
       } catch (lockError) {
         console.error("Failed to create lock:", lockError);
-        throw new Error("Could not reserve your ticket. Please try again.");
+        alert("This ticket is currently being processed by another user. Please try again in a few moments.");
+        setBookingLoading(false);
+        return;
       }
+
+      // Cleanup function for lock
+      const cleanupLock = async () => {
+        try {
+          await databases.deleteDocument(
+            import.meta.env.VITE_APPWRITE_DATABASE_ID,
+            import.meta.env.VITE_APPWRITE_LOCK_COLLECTION_ID,
+            lockId
+          );
+        } catch (deleteError) {
+          console.error("Failed to delete lock:", deleteError);
+        }
+      };
 
       // Load Razorpay script dynamically
       const script = document.createElement('script');
@@ -222,6 +237,31 @@ const EventDetails = ({ }) => {
       document.body.appendChild(script);
 
       script.onload = async () => {
+        // Verify ticket availability once more after lock is acquired
+        const updatedEvent = await getEventDetails(eventId);
+        const updatedTickets = {};
+
+        if (updatedEvent.categories && Array.isArray(updatedEvent.categories)) {
+          updatedEvent.categories.forEach(cat => {
+            try {
+              const [name, price, qty] = cat.split(':').map(item => item.trim());
+              updatedTickets[name] = parseInt(qty) || 0;
+            } catch (err) {
+              console.error("Error processing category:", cat, err);
+            }
+          });
+        }
+
+        const updatedAvailable = updatedTickets[ticketCategory] || 0;
+
+        if (updatedAvailable < quantity) {
+          await cleanupLock();
+          alert("Sorry, there are not enough tickets available. Please try with a smaller quantity.");
+          setBookingLoading(false);
+          return;
+        }
+
+
         const options = {
           key: getRazorpayKey(),
           amount: parseFloat(totalAmount) * 100,
@@ -232,7 +272,30 @@ const EventDetails = ({ }) => {
           order_id: null,
           handler: async function (response) {
             try {
-              // Payment success - create transaction record
+
+              // Payment success - verify ticket availability one final time
+              const finalEvent = await getEventDetails(eventId);
+              const finalTickets = {};
+
+              if (finalEvent.categories && Array.isArray(finalEvent.categories)) {
+                finalEvent.categories.forEach(cat => {
+                  try {
+                    const [name, price, qty] = cat.split(':').map(item => item.trim());
+                    finalTickets[name] = parseInt(qty) || 0;
+                  } catch (err) {
+                    console.error("Error processing category:", cat, err);
+                  }
+                });
+              }
+
+              const finalAvailable = finalTickets[ticketCategory] || 0;
+
+              if (finalAvailable < quantity) {
+                await cleanupLock();
+                alert("Sorry, the tickets are no longer available. Your payment will be refunded.");
+                return;
+              }
+              // If tickets are available, proceed with the original flow
               const transactionData = {
                 userId,
                 ticketId,
@@ -536,13 +599,21 @@ const EventDetails = ({ }) => {
                 <div className="w-full h-[37px] bg-gray-300 animate-pulse rounded-[25px]" />
               ) : authUser ? (
                 <button
-                  onClick={handleBookNow}
-                  disabled={bookingLoading || isSoldOut || !currentTicket}
-                  className={`bg-[#18181B] text-white w-full h-[37px] text-sm md:text-base font-semibold rounded-[25px] cursor-pointer ${bookingLoading || !currentTicket ? 'opacity-50 cursor-not-allowed' : ''
-                    } ${isSoldOut ? 'bg-red-900/50 text-red-400' : 'hover:bg-gray-700'}`}
-                >
-                  {isSoldOut ? 'SOLD OUT' : bookingLoading ? 'Processing...' : 'Book Now'}
-                </button>
+  onClick={handleBookNow}
+  disabled={bookingLoading || isSoldOut || !currentTicket}
+  className={`bg-[#18181B] text-white w-full h-[37px] text-sm md:text-base font-semibold rounded-[25px] cursor-pointer ${
+    bookingLoading || !currentTicket ? 'opacity-50 cursor-not-allowed' : ''
+  } ${
+    isSoldOut ? 'bg-red-900/50 text-red-400' : 'hover:bg-gray-700'
+  }`}
+>
+  {isSoldOut 
+    ? 'SOLD OUT' 
+    : bookingLoading 
+      ? 'Processing...' 
+      : 'Book Now'
+  }
+</button>
               ) : (
                 <button
                   onClick={() => navigate('/login-signup', { state: { from: `/events/${eventId}` } })}
