@@ -49,8 +49,12 @@ const Ticket = () => {
       const response = await fetch(qrDataUrl);
       const blob = await response.blob();
 
-      // Create File object
-      const file = new File([blob], `ticket_${Date.now()}.png`, {
+      // Generate random ID for filename (similar to your desired format)
+      const randomId = Math.random().toString(36).substring(2, 12) + 
+                      Math.random().toString(36).substring(2, 12);
+      
+      // Create File object with desired filename format
+      const file = new File([blob], `${randomId}_ticket_qr.png`, {
         type: 'image/png',
         lastModified: Date.now()
       });

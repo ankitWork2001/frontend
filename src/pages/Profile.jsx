@@ -33,38 +33,48 @@ const Profile = () => {
      const handleImageUpload = async (e) => {
           const file = e.target.files[0];
           if (file) {
-              try {
-                  const fileId = ID.unique();
-                  const uploadedFile = await storage.createFile(
-                      import.meta.env.VITE_APPWRITE_USER_PROFILE_BUCKET_ID,
-                      fileId,
-                      file
-                  );
-      
-                  const fileUrl = await storage.getFilePreview(
-                      import.meta.env.VITE_APPWRITE_USER_PROFILE_BUCKET_ID,
-                      uploadedFile.$id
-                  );
-      
-                  console.log("File uploaded successfully:", fileUrl);
-      
-                  // Update profilePicUrl in Appwrite database
-                  await databases.updateDocument(
-                      import.meta.env.VITE_APPWRITE_DATABASE_ID,
-                      import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID,
-                      user.$id,
-                      { profilePicUrl: fileUrl }
-                  );
-      
-                  // 🟢 updateUser() se AuthContext me user state ko update karein
-                  updateUser({ profilePicUrl: fileUrl });
-      
-                  alert("Profile picture updated successfully!");
-              } catch (error) {
-                  console.error("Error uploading image:", error.message);
-              }
+               try {
+                    // Create new filename with correct format: {userID}_user_pic.png
+                    const newFileName = `${user.$id}_user_pic.${file.name.split('.').pop()}`;
+
+                    // Create new File object with correct name
+                    const renamedFile = new File(
+                         [file],
+                         newFileName,
+                         { type: file.type }
+                    );
+
+                    // Upload the renamed file
+                    const uploadedFile = await storage.createFile(
+                         import.meta.env.VITE_APPWRITE_USER_PROFILE_BUCKET_ID,
+                         ID.unique(),
+                         renamedFile // Use the renamed file here
+                    );
+
+                    const fileUrl = storage.getFilePreview(
+                         import.meta.env.VITE_APPWRITE_USER_PROFILE_BUCKET_ID,
+                         uploadedFile.$id
+                    );
+
+                    console.log("File uploaded successfully:", fileUrl);
+
+                    // Update profilePicUrl in Appwrite database
+                    await databases.updateDocument(
+                         import.meta.env.VITE_APPWRITE_DATABASE_ID,
+                         import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID,
+                         user.$id,
+                         { profilePicUrl: fileUrl }
+                    );
+
+                    // Update user state
+                    updateUser({ profilePicUrl: fileUrl });
+
+                    alert("Profile picture updated successfully!");
+               } catch (error) {
+                    console.error("Error uploading image:", error.message);
+               }
           }
-      };
+     };
 
      const handleSave = async () => {
           try {

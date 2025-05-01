@@ -19,13 +19,14 @@ const Footer = () => {
             <p className="flex items-center gap-2 justify-center sm:justify-start">
               📧{" "}
               <a href="mailto:info@musicfest.com" className="hover:underline">
-                info@musicfest.com
+              admin@showgo.in
+              
               </a>
             </p>
             <p className="flex items-center gap-2 justify-center sm:justify-start">
               📞{" "}
               <a href="tel:+15551234567" className="hover:underline">
-                +1 (555) 123-4567
+              +91 81463 31455
               </a>
             </p>
             <p className="flex items-center gap-2 justify-center sm:justify-start">

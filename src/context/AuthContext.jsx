@@ -37,13 +37,30 @@ export const AuthProvider = ({ children }) => {
                const qrBlob = await generateDefaultQR(user.$id);
                if (!qrBlob || !(qrBlob instanceof Blob)) throw new Error("Invalid QR Code Blob");
 
-               const qrFile = new File([qrBlob], `${user.$id}_qr.png`, { type: "image/png" });
+               // Change this line to use the correct filename format
+               const qrFile = new File(
+                    [qrBlob],
+                    `${user.$id}_user_qr.png`, // New filename format
+                    { type: "image/png" }
+               );
+
                const qrFileResponse = await storage.createFile(QR_BUCKET_ID, ID.unique(), qrFile);
 
                let profilePicUrl = "";
                if (profilePicFile) {
-                    const profilePicResponse = await storage.createFile(PROFILE_BUCKET_ID, ID.unique(), profilePicFile);
-                    profilePicUrl = storage.getFilePreview(PROFILE_BUCKET_ID, profilePicResponse.$id)
+                    // Change this line to use the correct filename format
+                    const profilePicFileWithName = new File(
+                         [profilePicFile],
+                         `${user.$id}_user_pic.png`, // New filename format
+                         { type: profilePicFile.type || "image/png" }
+                    );
+
+                    const profilePicResponse = await storage.createFile(
+                         PROFILE_BUCKET_ID,
+                         ID.unique(),
+                         profilePicFileWithName
+                    );
+                    profilePicUrl = storage.getFilePreview(PROFILE_BUCKET_ID, profilePicResponse.$id);
                }
                // create user document with profile pic url 
                const userDoc = await databases.createDocument(
@@ -65,6 +82,47 @@ export const AuthProvider = ({ children }) => {
                console.error("Error creating user document:", error);
           }
      };
+
+     // Add this function to your AuthProvider
+     const updateProfilePicture = async (userId, file) => {
+          try {
+               if (!userId || !file) throw new Error("User ID and file are required");
+
+               // Create file with correct naming format
+               const profilePicFile = new File(
+                    [file],
+                    `${userId}_user_pic.png`,
+                    { type: file.type || "image/png" }
+               );
+
+               // Upload to storage
+               const response = await storage.createFile(
+                    PROFILE_BUCKET_ID,
+                    ID.unique(),
+                    profilePicFile
+               );
+
+               // Get the preview URL
+               const profilePicUrl = storage.getFilePreview(PROFILE_BUCKET_ID, response.$id);
+
+               // Update user document
+               const userDoc = await databases.updateDocument(
+                    DATABASE_ID,
+                    USERS_COLLECTION_ID,
+                    user.$id, // Make sure you have access to user.$id here
+                    { profilePicUrl }
+               );
+
+               // Update local state
+               setUser(prev => ({ ...prev, profilePicUrl }));
+
+               return profilePicUrl;
+          } catch (error) {
+               console.error("Error updating profile picture:", error);
+               throw error;
+          }
+     };
+
 
      useEffect(() => {
           let isMounted = true; // Prevents updating state after unmounting
@@ -138,7 +196,7 @@ export const AuthProvider = ({ children }) => {
 
                // ✅ Create new login session
                await account.createEmailPasswordSession(email, password, {
-                    scopes:['account']
+                    scopes: ['account']
                });
 
                // ✅ Get logged-in user details
@@ -174,7 +232,7 @@ export const AuthProvider = ({ children }) => {
      };
 
      return (
-          <AuthContext.Provider value={{ user, register, login, logout, loading, updateUser }}>
+          <AuthContext.Provider value={{ user, register, login, logout, loading, updateUser, updateProfilePicture }}>
                {children}
           </AuthContext.Provider>
      );
