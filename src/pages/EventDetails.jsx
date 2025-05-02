@@ -10,7 +10,7 @@ import { useAuth } from "../context/AuthContext";
 const EventDetails = ({ }) => {
   const navigate = useNavigate();
   const { eventId } = useParams();
-  const { quantity, selectedTicket, increment, decrement, updateSelectedTicket, userId, user } = useCart();
+  const { quantity, selectedTicket, increment, decrement, updateSelectedTicket } = useCart();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,7 +18,7 @@ const EventDetails = ({ }) => {
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [ticketsAvailable, setTicketsAvailable] = useState({});
   const [mapUrl, setMapUrl] = useState("");
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
 
 
   useEffect(() => {
@@ -170,7 +170,7 @@ const EventDetails = ({ }) => {
       return;
     }
 
-    if (!userId) {
+    if (!isAuthenticated || !user) {
       navigate('/login-signup', { state: { from: `/events/${eventId}` } });
       return;
     }
@@ -297,7 +297,7 @@ const EventDetails = ({ }) => {
               }
               // If tickets are available, proceed with the original flow
               const transactionData = {
-                userId,
+                userId: user.$id,
                 ticketId,
                 paymentId: response.razorpay_payment_id,
                 totalAmount: totalAmount.toString(),
@@ -314,7 +314,7 @@ const EventDetails = ({ }) => {
 
               // Create ticket document in tickets collection
               const ticketData = {
-                userId,
+                userId: user.$id,
                 eventId,
                 eventName: event.name,
                 eventSub_name: event.tagline || '',
@@ -342,7 +342,7 @@ const EventDetails = ({ }) => {
               const qrData = JSON.stringify({
                 ticketId,
                 eventId,
-                userId
+                userId: user.$id,
               });
 
               // Generate QR code and upload to storage
@@ -382,7 +382,7 @@ const EventDetails = ({ }) => {
 
               // Create order record
               const orderData = {
-                userId,
+                userId: user.$id,
                 ticketId,
                 ticketName: currentTicket.name,
                 eventId,
@@ -580,7 +580,7 @@ const EventDetails = ({ }) => {
                   <button
                     className="text-xl cursor-pointer px-2"
                     onClick={decrement}
-                    disabled={quantity <= 1}
+                    disabled={quantity <= 0}
                   >
                     -
                   </button>
@@ -597,23 +597,21 @@ const EventDetails = ({ }) => {
 
               {authLoading ? (
                 <div className="w-full h-[37px] bg-gray-300 animate-pulse rounded-[25px]" />
-              ) : authUser ? (
+              ) : isAuthenticated && user ? (
                 <button
-  onClick={handleBookNow}
-  disabled={bookingLoading || isSoldOut || !currentTicket}
-  className={`bg-[#18181B] text-white w-full h-[37px] text-sm md:text-base font-semibold rounded-[25px] cursor-pointer ${
-    bookingLoading || !currentTicket ? 'opacity-50 cursor-not-allowed' : ''
-  } ${
-    isSoldOut ? 'bg-red-900/50 text-red-400' : 'hover:bg-gray-700'
-  }`}
->
-  {isSoldOut 
-    ? 'SOLD OUT' 
-    : bookingLoading 
-      ? 'Processing...' 
-      : 'Book Now'
-  }
-</button>
+                  onClick={handleBookNow}
+                  disabled={bookingLoading || isSoldOut || !currentTicket}
+                  className={`bg-[#18181B] text-white w-full h-[37px] text-sm md:text-base font-semibold rounded-[25px] cursor-pointer ${bookingLoading || !currentTicket ? 'opacity-50 cursor-not-allowed' : ''
+                    } ${isSoldOut ? 'bg-red-900/50 text-red-400' : 'hover:bg-gray-700'
+                    }`}
+                >
+                  {isSoldOut
+                    ? 'SOLD OUT'
+                    : bookingLoading
+                      ? 'Processing...'
+                      : 'Book Now'
+                  }
+                </button>
               ) : (
                 <button
                   onClick={() => navigate('/login-signup', { state: { from: `/events/${eventId}` } })}

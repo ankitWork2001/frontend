@@ -13,6 +13,7 @@ const QR_BUCKET_ID = import.meta.env.VITE_APPWRITE_QR_BUCKET_ID;
 export const AuthProvider = ({ children }) => {
      const [user, setUser] = useState(null);
      const [loading, setLoading] = useState(true);
+     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
      const updateUser = (newUserData) => {
           setUser((prevUser) => ({
@@ -153,7 +154,9 @@ export const AuthProvider = ({ children }) => {
                     if (isMounted) {
                          setUser(userData);
                     }
+                    setIsAuthenticated(true);
                } catch (error) {
+                    setIsAuthenticated(false);
                     console.error("❌ Error getting user:", error);
                     if (isMounted) setUser(null);
                } finally {
@@ -214,7 +217,9 @@ export const AuthProvider = ({ children }) => {
 
                // ✅ Update state
                setUser(userData);
+               setIsAuthenticated(true);
           } catch (error) {
+               setIsAuthenticated(false);
                console.error("Login Error:", error);
                throw error;
           }
@@ -225,6 +230,7 @@ export const AuthProvider = ({ children }) => {
           try {
                await account.deleteSessions();
                setUser(null);
+               setIsAuthenticated(false);
           } catch (error) {
                console.error("Logout Error:", error);
                throw error;
@@ -232,7 +238,7 @@ export const AuthProvider = ({ children }) => {
      };
 
      return (
-          <AuthContext.Provider value={{ user, register, login, logout, loading, updateUser, updateProfilePicture }}>
+          <AuthContext.Provider value={{ user, isAuthenticated, register, login, logout, loading, updateUser, updateProfilePicture }}>
                {children}
           </AuthContext.Provider>
      );
