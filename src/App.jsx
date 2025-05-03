@@ -36,8 +36,8 @@ function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           {/* ✅ Fix: Dynamic Route for Event Details */}
           <Route path="/event-details/:eventId" element={<EventDetails />} />
-          <Route path="/join-community" element={<JoinCommunity />} />
-          <Route path="/join-community/:groupId" element={<JoinCommunity />} />
+          <Route path="/joinGroup" element={<JoinCommunity />} />
+          <Route path="/joinGroup/:groupId" element={<JoinCommunity />} />
           <Route path="/members-added" element={<MembersAdded />} />
           <Route path="/login-signup" element={<LoginPage />} />
           <Route path="/login" element={<Navigate to="/login-signup" />} />

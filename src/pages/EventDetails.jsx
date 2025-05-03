@@ -184,7 +184,7 @@ const EventDetails = ({ }) => {
 
     try {
       // Generate IDs
-      const ticketId = `TKT-${Date.now().toString().slice(-9)}-${Math.random().toString(36).substr(2, 4)}`;
+      const ticketId = eventId;
       const transactionId = `TXN-${Date.now()}`;
 
       // Check ticket availability again and create lock
@@ -312,6 +312,8 @@ const EventDetails = ({ }) => {
               // Update ticket quantity in database
               await updateTicketQuantity(eventId, ticketCategory, quantity);
 
+              const ticketDocId = ID.unique();
+
               // Create ticket document in tickets collection
               const ticketData = {
                 userId: user.$id,
@@ -325,6 +327,7 @@ const EventDetails = ({ }) => {
                 imageFileId: event.imageFileId,
                 category: ticketCategory,
                 quantity: quantity.toString(),
+                qrCodeFileId: `${ticketDocId}_ticket_qr.png`,
                 pricePerTicket: currentTicket.price.toString(),
                 isListedForSale: "false",
                 checkedIn: "false"
@@ -334,23 +337,16 @@ const EventDetails = ({ }) => {
               await databases.createDocument(
                 import.meta.env.VITE_APPWRITE_DATABASE_ID,
                 import.meta.env.VITE_APPWRITE_TICKETS_COLLECTION_ID,
-                ID.unique(),
+                ticketDocId,
                 ticketData
               );
 
-              // Generate QR code data
-              const qrData = JSON.stringify({
-                ticketId,
-                eventId,
-                userId: user.$id,
-              });
-
-              // Generate QR code and upload to storage
               try {
-                // Create canvas for QR code
+                // Create QR data using the ticketDocId
+                const qrData = ticketDocId;
+                
+                // Generate QR code as canvas
                 const canvas = document.createElement('canvas');
-
-                // Generate QR code to canvas
                 await QRCode.toCanvas(canvas, qrData, {
                   width: 256,
                   margin: 2,
@@ -359,31 +355,59 @@ const EventDetails = ({ }) => {
                     light: '#ffffff'
                   }
                 });
-
-                // Convert canvas to blob and upload
-                await new Promise((resolve, reject) => {
-                  canvas.toBlob(async (blob) => {
-                    try {
-                      await storage.createFile(
-                        import.meta.env.VITE_APPWRITE_TICKET_QRs_BUCKET_ID,
-                        ticketId,
-                        blob
-                      );
-                      resolve();
-                    } catch (error) {
-                      reject(error);
-                    }
-                  }, 'image/png');
+              
+                // Convert canvas to blob
+                const blob = await new Promise((resolve) => {
+                  canvas.toBlob(resolve, 'image/png');
                 });
+              
+                if (!blob) {
+                  throw new Error("Failed to convert QR code to blob");
+                }
+              
+                // Use consistent filename format
+                const qrFilename = `${ticketDocId}_ticket_qr.png`;
+                
+                // Create File object
+                const file = new File([blob], qrFilename, {
+                  type: 'image/png',
+                  lastModified: Date.now()
+                });
+                
+                // Store the QR code
+                await storage.createFile(
+                  import.meta.env.VITE_APPWRITE_TICKET_QRs_BUCKET_ID,
+                  qrFilename,
+                  file
+                );
+                
+                // Update the ticket document with QR code filename
+                await databases.updateDocument(
+                  import.meta.env.VITE_APPWRITE_DATABASE_ID,
+                  import.meta.env.VITE_APPWRITE_TICKETS_COLLECTION_ID,
+                  ticketDocId,
+                  {
+                    qrCodeFileId: qrFilename
+                  }
+                );
+              
               } catch (qrError) {
-                console.error("QR Code generation failed:", qrError);
-                // Continue even if QR code fails
+                console.error("QR Code generation/upload failed:", qrError);
+                // Update with fallback pattern
+                await databases.updateDocument(
+                  import.meta.env.VITE_APPWRITE_DATABASE_ID,
+                  import.meta.env.VITE_APPWRITE_TICKETS_COLLECTION_ID,
+                  ticketDocId,
+                  {
+                    qrCodeFileId: `${ticketDocId}_ticket_qr_fallback`
+                  }
+                );
               }
 
               // Create order record
               const orderData = {
                 userId: user.$id,
-                ticketId,
+                ticketId: ticketDocId,
                 ticketName: currentTicket.name,
                 eventId,
                 transactionId,
@@ -406,7 +430,7 @@ const EventDetails = ({ }) => {
                 await databases.deleteDocument(
                   import.meta.env.VITE_APPWRITE_DATABASE_ID,
                   import.meta.env.VITE_APPWRITE_LOCK_COLLECTION_ID,
-                  lockId
+                  lockId,
                 );
               } catch (deleteError) {
                 console.error("Failed to delete lock:", deleteError);
@@ -418,9 +442,12 @@ const EventDetails = ({ }) => {
                     name: user.name,
                     selectedTicketType: currentTicket.name,
                     selectedQuantity: quantity,
-                    singleTicketPrice: currentTicket.price,
-                    ticketId: ticketId,
-                    paymentId: response.razorpay_payment_id
+                    singleTicketPrice: currentTicket.price.toString(),
+                    ticketId: ticketDocId,
+                    paymentId: response.razorpay_payment_id,
+                    quantity: quantity.toString(),
+                    totalAmountPaid: totalAmount, // This should be the final amount with taxes
+                    ticketCategory: ticketCategory // Make sure this is the exact category name
                   },
                   eventDetails: {
                     name: event.name,
@@ -461,7 +488,7 @@ const EventDetails = ({ }) => {
         rzp.on('payment.failed', async function (response) {
           // Payment failed - create failed transaction record
           const transactionData = {
-            userId,
+            userId: user.$id,
             ticketId,
             paymentId: response.error.metadata.payment_id || 'none',
             totalAmount: totalAmount.toString(),

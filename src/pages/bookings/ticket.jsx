@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
-import { toDataURL } from 'qrcode';
-import { QRCodeSVG } from 'qrcode.react';
+import { useLocation, useNavigate } from "react-router-dom";
+import { toDataURL } from "qrcode";
+import { QRCodeSVG } from "qrcode.react";
 import { Client, Storage, ID } from "appwrite";
 
 const Ticket = () => {
   const { state } = useLocation();
+  const navigate = useNavigate();
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userName, setUserName] = useState("Guest");
   const [qrData, setQrData] = useState("");
+  const [eventDetails, setEventDetails] = useState(null);
+  const [orderDetails, setOrderDetails] = useState(null);
 
   // Initialize Appwrite client once
   const client = useMemo(() => {
@@ -21,103 +24,50 @@ const Ticket = () => {
 
   const storage = useMemo(() => new Storage(client), [client]);
 
-
-  const generateQRCode = async (data) => {
-    try {
-      return await toDataURL(data, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#ffffff'
-        }
-      });
-    } catch (err) {
-      console.error("QR generation error:", err);
-      setError("Failed to generate QR code");
-      return null;
-    }
-  };
-
-  const uploadQrCodeToStorage = async (data) => {
-    try {
-      // Generate QR code
-      const qrDataUrl = await generateQRCode(data);
-      if (!qrDataUrl) throw new Error("QR generation failed");
-
-      // Convert to Blob
-      const response = await fetch(qrDataUrl);
-      const blob = await response.blob();
-
-      // Generate random ID for filename (similar to your desired format)
-      const randomId = Math.random().toString(36).substring(2, 12) + 
-                      Math.random().toString(36).substring(2, 12);
-      
-      // Create File object with desired filename format
-      const file = new File([blob], `${randomId}_ticket_qr.png`, {
-        type: 'image/png',
-        lastModified: Date.now()
-      });
-
-      // Upload to Appwrite
-      const uploadedFile = await storage.createFile(
-        import.meta.env.VITE_APPWRITE_TICKET_QRs_BUCKET_ID,
-        ID.unique(),
-        file
-      );
-
-      // Get preview URL
-      return storage.getFilePreview(
-        import.meta.env.VITE_APPWRITE_TICKET_QRs_BUCKET_ID,
-        uploadedFile.$id
-      );
-    } catch (err) {
-      console.error("Upload error:", {
-        message: err.message,
-        stack: err.stack,
-        data: data
-      });
-      throw err;
-    }
-  };
-
   useEffect(() => {
     const initializeTicket = async () => {
       try {
-        const name = state?.orderDetails?.name ||
-          localStorage.getItem('userName') ||
-          state?.user?.name ||
-          "Guest";
+        setLoading(true);
+
+        if (!state?.eventDetails || !state?.orderDetails?.ticketId) {
+          throw new Error("Ticket data not found in state");
+        }
+
+        setEventDetails(state.eventDetails);
+        setOrderDetails(state.orderDetails);
+
+        // Set user name
+        const name = state.orderDetails?.name || "Guest";
         setUserName(name);
 
-        const ticketId = state?.orderDetails?.ticketId || ID.unique();
-        const data = JSON.stringify({
-          ticketId,
-          eventId: state?.eventDetails?.$id,
-          userId: state?.orderDetails?.userId
-        });
-        setQrData(data);
+        // Get ticket ID from order details
+        const ticketId = state.orderDetails.ticketId;
+        setQrData(ticketId);
 
-        // Check if already downloaded
-        const isDownloaded = localStorage.getItem(`ticketDownloaded_${ticketId}`);
-        if (isDownloaded) {
-          console.log('Ticket already downloaded');
-        }
-
-        // Generate local QR code for display
-        const localQrUrl = await generateQRCode(data);
-        setQrCodeUrl(localQrUrl || "");
-
-        // Attempt upload (but don't block UI if it fails)
+        // Try to load QR code from storage - use the correct filename format
         try {
-          const uploadedUrl = await uploadQrCodeToStorage(data);
-          setQrCodeUrl(uploadedUrl);
-        } catch (uploadErr) {
-          console.warn("Upload failed, using local QR:", uploadErr);
+          const qrFilename = state.orderDetails.qrCodeFileId || `${ticketId}_ticket_qr.png`;
+          const previewUrl = storage.getFileView(
+            import.meta.env.VITE_APPWRITE_TICKET_QRs_BUCKET_ID,
+            qrFilename
+          );
+
+          // Verify the URL is valid before setting it
+          const response = await fetch(previewUrl);
+          if (response.ok) {
+            setQrCodeUrl(previewUrl);
+          } else {
+            throw new Error("QR file not found in storage");
+          }
+        } catch (err) {
+          console.warn("Failed to load stored QR, generating new one:", err);
+          const localQrUrl = await generateQRCode(ticketId);
+          setQrCodeUrl(localQrUrl || "");
         }
+
       } catch (err) {
         console.error("Ticket initialization error:", err);
-        setError("Failed to initialize ticket");
+        setError(err.message || "Failed to initialize ticket");
       } finally {
         setLoading(false);
       }
@@ -126,40 +76,68 @@ const Ticket = () => {
     initializeTicket();
   }, [state]);
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-screen bg-white">
-      <div className="text-black text-lg">Loading ticket...</div>
-    </div>;
+  const generateQRCode = async (data) => {
+    try {
+      return await toDataURL(data, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#ffffff",
+        },
+      });
+    } catch (err) {
+      console.error("QR generation error:", err);
+      return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+    }
+  };
+
+  if (!state?.eventDetails) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-white">
+        <div className="text-black text-lg p-4 text-center">
+          Ticket data not found. <br />
+          <button
+            onClick={() => navigate("/events")}
+            className="mt-4 px-4 py-2 bg-black text-white rounded"
+          >
+            Browse Events
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  if (!state?.orderDetails || !state?.eventDetails) {
-    return <div className="flex justify-center items-center h-screen bg-white">
-      <div className="text-black text-lg">Ticket data not found</div>
-    </div>;
-  }
-
-  const { orderDetails, eventDetails } = state;
-  const quantity = orderDetails.selectedQuantity || orderDetails.quantity || 1;
-  const ticketId = orderDetails.ticketId || "TKT-XXXXXX-XXXX";
-
-
+  const quantity = useMemo(() => {
+    // Try different possible field names
+    return (
+      parseInt(orderDetails?.quantity) ||
+      parseInt(orderDetails?.selectedQuantity) ||
+      1
+    );
+  }, [orderDetails]);
 
   return (
     <div className="flex justify-center items-center min-h-screen p-4 bg-black">
-      <div className="font-serif w-[340px] h-[620px] bg-white rounded-[40px] flex flex-col overflow-hidden drop-shadow-[0px_4px_10px_rgba(255,255,255,0.7)]">
-
+      <div className="font-serif w-[340px] h-[640px] bg-white rounded-[50px] flex flex-col overflow-hidden">
         {/* Top White Padding - Reduced height */}
         <div className="h-6 bg-white flex-none"></div>
 
         {/* Header - Made more compact */}
-        <div className="bg-gradient-to-b from-black to-gray-900 w-full flex-none flex flex-col justify-center items-center py-3 px-2 text-white">
-          <div className="text-lg font-bold line-clamp-2 text-center">{eventDetails.name}</div>
-          <div className="text-xs text-center mt-1">{eventDetails.tagline || "Premium Event"}</div>
+        <div className="bg-gradient-to-b from-black to-black w-full flex-none flex flex-col justify-center items-center py-3 px-2 text-white">
+          <div className="text-lg line-clamp-2 text-center">
+            {eventDetails?.name}
+          </div>
+          <div className="text-xs text-center mt-1">
+            {eventDetails?.tagline || "Premium Event"}
+          </div>
         </div>
 
         {/* Tagline - Made more compact */}
         <div className="w-full flex justify-center py-1 flex-none">
-          <div className="text-[10px] text-gray-500">The Sound of Arijit Singh</div>
+          <div className="text-[10px] text-gray-500">
+            {eventDetails?.tagline || "Premium Event"}
+          </div>
         </div>
 
         {/* Main Content - Added overflow control */}
@@ -168,55 +146,84 @@ const Ticket = () => {
           <div className="w-full flex px-4 py-2">
             <div className="w-1/2 flex flex-col gap-3">
               <div>
-                <div className="text-xs font-bold text-black">Venue</div>
-                <div className="text-[10px] text-gray-600 line-clamp-2">{eventDetails.location || "Not specified"}</div>
+                <div className="text-xs text-black">Venue</div>
+                <div className="text-[10px] text-gray-600 line-clamp-2">
+                  {eventDetails?.location || "Not specified"}
+                </div>
               </div>
               <div>
-                <div className="text-xs font-bold text-black">Quantity</div>
-                <div className="text-[10px] text-gray-600">{quantity}</div>
+                <div className="text-xs text-black">Quantity</div>
+                <div className="text-[10px] text-gray-600">
+                  {quantity} {quantity > 1 ? 'tickets' : 'ticket'}
+                </div>
               </div>
               <div>
-                <div className="text-xs font-bold text-black">Name</div>
+                <div className="text-xs text-black">Name</div>
                 <div className="text-[10px] text-gray-600 line-clamp-1">
-                  {userName && userName.length > 20 ? userName.slice(0, 17) + "..." : userName}
+                  {userName && userName.length > 20
+                    ? userName.slice(0, 17) + "..."
+                    : userName}
                 </div>
               </div>
             </div>
 
             <div className="w-1/2 flex flex-col gap-3">
               <div>
-                <div className="text-xs font-bold text-black">Date</div>
+                <div className="text-xs text-black">Date</div>
                 <div className="text-[10px] text-gray-600">
-                  {new Date(eventDetails.date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
+                  {eventDetails?.date
+                    ? new Date(eventDetails.date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                    : "Not specified"}
                 </div>
               </div>
               <div>
-                <div className="text-xs font-bold text-black">Time</div>
-                <div className="text-[10px] text-gray-600">{eventDetails.time || "8:00 PM"}</div>
+                <div className="text-xs text-black">Time</div>
+                <div className="text-[10px] text-gray-600">
+                  {eventDetails?.time || "8:00 PM"}
+                </div>
               </div>
               <div>
-                <div className="text-xs font-bold text-black">Access</div>
+                <div className="text-xs text-black">Access</div>
                 <div className="text-[10px] text-gray-600">
-                  {orderDetails.ticketCategory || "VIP"}: ₹{orderDetails.singleTicketPrice || "0"}
+                  {orderDetails?.ticketCategory || "VIP"}: ₹
+                  {orderDetails?.totalAmountPaid
+                    ? parseFloat(orderDetails.totalAmountPaid).toFixed(2)
+                    : (parseInt(orderDetails?.quantity || 1) *
+                      parseFloat(orderDetails?.singleTicketPrice || 0)).toFixed(2)}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Dotted Line + Circles - Made more compact */}
+          {/* Dotted Line + Circles - Updated to match design */}
           <div className="relative py-4">
             <div className="absolute top-1/2 left-8 right-8 border-t-2 border-dotted border-gray-300"></div>
-            <div className="absolute top-1/2 -translate-y-1/2 -left-4 h-8 w-8 bg-black rounded-full border-[4px] border-white"></div>
-            <div className="absolute top-1/2 -translate-y-1/2 -right-4 h-8 w-8 bg-black rounded-full border-[4px] border-white"></div>
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -left-[14px] bg-black border-[4px] border-white rounded-full"
+              style={{
+                width: "28.08px",
+                height: "32.93px",
+              }}
+            ></div>
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -right-[14px] bg-black border-[4px] border-white rounded-full"
+              style={{
+                width: "28.08px",
+                height: "32.93px",
+              }}
+            ></div>
           </div>
+
 
           {/* QR Section - Made more compact */}
           <div className="flex flex-col items-center px-4 pb-4">
-            <p className="text-xs mb-2 text-gray-600 font-medium">Radiance Tech Event</p>
+            <p className="text-xs mb-2 text-gray-600">
+              Radiance Tech Event
+            </p>
             <div className="bg-white border border-gray-300 p-2 rounded-lg">
               {error ? (
                 <p className="text-red-500 text-xs text-center">{error}</p>
@@ -236,21 +243,22 @@ const Ticket = () => {
                 />
               )}
             </div>
-            {/* Ticket ID + Quantity */}
-<div className="w-full mt-2 flex flex-col items-center justify-center space-y-1 px-2">
-  <p className="text-gray-600 text-[10px] font-mono text-center break-words">
-    {ticketId}
-  </p>
-  <p className="text-lg font-bold text-center">x{quantity}</p>
-</div>
+            {/* Event ID + Quantity */}
+            <div className="w-full mt-2 flex flex-col items-center justify-center space-y-1 px-2">
+              <p className="text-gray-600 text-[10px] font-mono text-center break-words">
+                {qrData ||
+                  "Event ID not available"}
+              </p>
+              <p className="text-lg text-center">x{quantity}</p>
+            </div>
           </div>
         </div>
 
         {/* Footer - Made more compact */}
-        <div className="bg-gradient-to-b from-black to-gray-900 w-full flex-none flex flex-col justify-center items-center py-3 px-2 text-white">
+        <div className="bg-gradient-to-b from-black to-black w-full flex-none flex flex-col justify-center items-center py-3 px-2 text-white">
           <div className="text-[10px] text-gray-400">booked on</div>
-          <div className="bg-gray-400 w-24 h-[1px] my-1"></div>
-          <div className="text-lg font-bold mt-1">Show GO</div>
+          <div className="text-lg ">Show GO.</div>
+          <div className="bg-gray-400 w-20 h-[1px] my-1"></div>
         </div>
 
         {/* Bottom White Padding - Reduced height */}

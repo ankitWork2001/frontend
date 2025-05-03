@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { databases } from "../api/appwriteConfig"; 
 import { useAuth } from "../context/AuthContext"; 
 
 const JoinCommunity = () => {
-  const { groupId } = useParams();
-  console.log("Group ID from params:", groupId); 
+  const { groupId: paramGroupId } = useParams();
+  const [searchParams] = useSearchParams();
+  const queryGroupId = searchParams.get("groupId");
+  const groupId = paramGroupId || queryGroupId;
+  
+  console.log("Group ID:", groupId); 
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -21,7 +25,7 @@ const JoinCommunity = () => {
         if (!user) {
           navigate("/login", { 
             state: { 
-              from: location.pathname,
+              from: location.pathname + location.search,
               message: "Please login to join this community"
             } 
           });
@@ -65,7 +69,7 @@ const JoinCommunity = () => {
     };
 
     fetchGroup();
-  }, [groupId, user, navigate, location.pathname]);
+  }, [groupId, user, navigate, location.pathname, location.search]);
 
   const handleJoinGroup = async () => {
     try {
@@ -90,7 +94,7 @@ const JoinCommunity = () => {
       setIsMember(true);
       
       // Optionally navigate to group page or show success
-      navigate(`/join-community/${groupId}`);
+      navigate(`/joinGroup/${groupId}`);
     } catch (err) {
       console.error("Error joining group:", err);
       setError("Failed to join group. Please try again.");

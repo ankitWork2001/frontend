@@ -37,7 +37,7 @@ const Home = () => {
   }, []);
 
   const handleDiveInClick = () => {
-    navigate("/events"); 
+    navigate("/events");
   };
 
   const handleEventClick = (eventId) => {
@@ -97,11 +97,17 @@ const Home = () => {
     <>
       <div className="overflow-x-hidden bg-black">
         {/* Heading Section */}
-        <div className="flex flex-col items-center justify-center min-h-[190px]">
+        {/* <div className="flex flex-col items-center justify-center min-h-[190px]">
           <h1 className="text-white font-extrabold text-[40px] leading-[45px] tracking-[0.15em] sm:text-[55px] sm:leading-[60px] sm:tracking-[0.20em] md:text-[70px] md:leading-[69px] md:tracking-[0.24em] max-w-[885px] font-inter text-center">
             Snap Tickets, <br /> Share Moments
           </h1>
+        </div> */}
+        <div className="flex flex-col items-center justify-center min-h-[190px] mb-6">
+          <h1 className="text-white text-5xl md:text-7xl font-bold text-center tracking-wide leading-tight max-w-[885px] font-inter">
+            Snap Tickets, <br /> Share Moments
+          </h1>
         </div>
+
 
         {/* Merged Section: "Dive In" + Features */}
         <div className="flex flex-col items-center justify-center gap-6 min-h-[500px]">
@@ -271,7 +277,10 @@ const Home = () => {
               Last-minute change? <br /> No problem! <br /> Easily transfer your{" "}
               <br /> ticket to a friend!
             </h1>
-            <button className="bg-white w-36 text-xl md:text-2xl text-black font-medium rounded-full shadow-md py-2 hover:bg-gray-200 transition h-12">
+            <button
+              className="bg-white w-36 text-xl md:text-2xl text-black font-medium rounded-full shadow-md py-2 hover:bg-gray-200 transition h-12"
+              onClick={handleDiveInClick}
+            >
               Explore
             </button>
           </div>
@@ -298,7 +307,10 @@ const Home = () => {
               Need to sell your ticket? <br /> Our platform makes it <br />{" "}
               quick and secure!
             </h1>
-            <button className="bg-white w-36 text-xl md:text-2xl text-black font-medium rounded-full shadow-md py-2 hover:bg-gray-200 transition h-12">
+            <button
+              className="bg-white w-36 text-xl md:text-2xl text-black font-medium rounded-full shadow-md py-2 hover:bg-gray-200 transition h-12"
+              onClick={handleDiveInClick}
+            >
               Explore
             </button>
           </div>
@@ -310,7 +322,9 @@ const Home = () => {
             <h1 className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-center md:text-left">
               Book with friends <br /> and enjoy events <br /> together!
             </h1>
-            <button className="bg-white w-36 text-xl md:text-2xl text-black font-medium rounded-full shadow-md py-2 hover:bg-gray-200 transition h-12">
+            <button className="bg-white w-36 text-xl md:text-2xl text-black font-medium rounded-full shadow-md py-2 hover:bg-gray-200 transition h-12"
+              onClick={handleDiveInClick}
+            >
               Explore
             </button>
           </div>
