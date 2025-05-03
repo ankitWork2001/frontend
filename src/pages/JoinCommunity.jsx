@@ -23,9 +23,13 @@ const JoinCommunity = () => {
       try {
         // Check if user is logged in
         if (!user) {
+          const redirectPath = groupId 
+            ? `/joinGroup?groupId=${groupId}`
+            : location.pathname + location.search;
+            
           navigate("/login", { 
             state: { 
-              from: location.pathname + location.search,
+              from: redirectPath,
               message: "Please login to join this community"
             } 
           });
@@ -37,6 +41,12 @@ const JoinCommunity = () => {
           setError("Invalid group link");
           setLoading(false);
           return;
+        }
+
+        // Verify environment variables are set
+        if (!import.meta.env.VITE_APPWRITE_DATABASE_ID || 
+            !import.meta.env.VITE_APPWRITE_GROUPS_COLLECTION_ID) {
+          throw new Error("Configuration error - missing required parameters");
         }
 
         // Fetch group details
@@ -56,20 +66,22 @@ const JoinCommunity = () => {
         if (response.members && Array.isArray(response.members)) {
           setIsMember(response.members.includes(user.$id));
         } else {
-          // Initialize members array if it doesn't exist
           setIsMember(false);
         }
 
         setLoading(false);
       } catch (err) {
-        setError(err.message || "Failed to fetch group details or group doesn't exist");
-        setLoading(false);
         console.error("Error fetching group:", err);
+        setError(err.message.includes("Missing required parameter") 
+          ? "Configuration error - please contact support"
+          : err.message || "Failed to fetch group details");
+        setLoading(false);
       }
     };
 
     fetchGroup();
   }, [groupId, user, navigate, location.pathname, location.search]);
+
 
   const handleJoinGroup = async () => {
     try {

@@ -1,5 +1,5 @@
 import { Route, Routes, Navigate } from "react-router-dom";
-import { useAuth } from "./context/AuthContext"; 
+import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Events from "./pages/Events";
@@ -19,7 +19,7 @@ import PrivacyPolicy from "./components/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
 
 function App() {
-  const { user, loading } = useAuth(); 
+  const { user, loading } = useAuth();
 
   if (loading) return <div className="h-screen flex items-center justify-center text-white">Loading...</div>;
   return (
@@ -36,8 +36,10 @@ function App() {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           {/* ✅ Fix: Dynamic Route for Event Details */}
           <Route path="/event-details/:eventId" element={<EventDetails />} />
-          <Route path="/joinGroup" element={<JoinCommunity />} />
-          <Route path="/joinGroup/:groupId" element={<JoinCommunity />} />
+          <Route path="/joinGroup">
+            <Route index element={<JoinCommunity />} />
+            <Route path=":groupId" element={<JoinCommunity />} />
+          </Route>
           <Route path="/members-added" element={<MembersAdded />} />
           <Route path="/login-signup" element={<LoginPage />} />
           <Route path="/login" element={<Navigate to="/login-signup" />} />
@@ -52,7 +54,7 @@ function App() {
             <Route index element={<AdminPanel />} />
           </Route>
         </Routes>
- 
+
         <Footer />
       </div>
     </div>
