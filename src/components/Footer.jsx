@@ -37,9 +37,6 @@ const Footer = () => {
           {/* Quick Links Section */}
           <div className="flex flex-col gap-2 w-full sm:w-[45%] md:w-[30%] lg:w-[16%] min-w-[160px] text-center sm:text-left">
             <h3 className="text-lg font-semibold">Quick Links</h3>
-            <a href="/join-community" className="hover:underline">
-              Join Community
-            </a>
             <a href="/about" className="hover:underline">
               About Us
             </a>

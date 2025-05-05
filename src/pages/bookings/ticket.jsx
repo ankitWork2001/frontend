@@ -222,7 +222,7 @@ const Ticket = () => {
           {/* QR Section - Made more compact */}
           <div className="flex flex-col items-center px-4 pb-4">
             <p className="text-xs mb-2 text-gray-600">
-              Radiance Tech Event
+            {eventDetails?.name}
             </p>
             <div className="bg-white border border-gray-300 p-2 rounded-lg">
               {error ? (
