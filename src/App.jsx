@@ -1,4 +1,5 @@
-import { Route, Routes, Navigate } from "react-router-dom";
+import { useEffect } from 'react';
+import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
@@ -18,13 +19,31 @@ import AdminRoutes from "./routes/AdminRoutes";
 import PrivacyPolicy from "./components/PrivacyPolicy";
 import ResetPassword from "./pages/ResetPassword";
 
+// Add this ScrollToTop component
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth" // For smooth scrolling
+    });
+  }, [pathname]);
+
+  return null;
+}
+
 function App() {
   const { user, loading } = useAuth();
 
   if (loading) return <div className="h-screen flex items-center justify-center text-white">Loading...</div>;
+  
   return (
     <div className="min-h-screen">
       <Navbar />
+      
+      {/* Add ScrollToTop component here */}
+      <ScrollToTop />
 
       <div style={{ paddingTop: "99px" }}>
         <Routes>
@@ -34,7 +53,6 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/account-delete" element={<AccountDelete />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          {/* ✅ Fix: Dynamic Route for Event Details */}
           <Route path="/event-details/:eventId" element={<EventDetails />} />
           <Route path="/joinGroup">
             <Route index element={<JoinCommunity />} />
@@ -45,11 +63,7 @@ function App() {
           <Route path="/login" element={<Navigate to="/login-signup" />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile" element={<Profile />} />
-
-          {/* <Route path="/booking-confirmation" element={<BookingConfirmation />} /> */}
           <Route path="/booking-confirmation/:orderId" element={<BookingConfirmation />} />
-
-
           <Route path="/admin" element={<AdminRoutes user={user} />}>
             <Route index element={<AdminPanel />} />
           </Route>

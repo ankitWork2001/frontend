@@ -164,6 +164,7 @@ const AdminPanel = () => {
 
      const [eventData, setEventData] = useState({
           name: "",
+          sub_name:"",
           price: "",
           eventInfo: "",
           location: "",

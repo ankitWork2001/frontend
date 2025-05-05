@@ -11,17 +11,17 @@ const Events = () => {
       const eventData = await fetchEvents();
       const updatedEvents = eventData.map((event) => {
         let imageUrl = `https://cloud.appwrite.io/v1/storage/buckets/66dd97eb0009f68104ef/files/${event.imageFileId}/view?project=67699acf002ecc80c89f`;
-        
+
         return { ...event, imageField: imageUrl };
       });
       setEvents(updatedEvents);
     };
-  
+
     getEvents();
     const unsubscribe = subscribeToEvents(getEvents);
     return () => unsubscribe();
   }, []);
-  
+
 
   const truncateText = (text) => {
     const sentences = text.split(".").filter(sentence => sentence.trim() !== "");
@@ -41,8 +41,13 @@ const Events = () => {
               className="w-full max-w-[463px] h-auto rounded-lg shadow-lg"
             />
 
-            <div className="flex flex-col gap-4 w-full max-w-[655px] text-center md:text-left mt-0">
+            <div className="flex flex-col gap-4 w-full max-w-[655px] text-center md:text-left self-start">
               <h1 className="text-[30px] md:text-[50px] text-white font-bold">{event.name}</h1>
+              {event.sub_name && (
+                <h2 className="text-[20px] md:text-[30px] text-[#09FF67] font-semibold">
+                  {event.sub_name}
+                </h2>
+              )}
               <p className="text-[16px] md:text-[20px] lg:text-[30px] text-[#D5D5D5] leading-relaxed">
                 {truncateText(event.eventInfo)}
               </p>
@@ -65,7 +70,7 @@ const Events = () => {
         ))
       )}
     </div>
-  );
+  ); 
 };
 
 export default Events;

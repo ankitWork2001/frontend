@@ -185,34 +185,31 @@ export const getRazorpayKey = () => {
 
 export const updateTicketQuantity = async (eventId, ticketName, quantityBooked) => {
     try {
-        // Get the current event data
+
         const event = await databases.getDocument(
             import.meta.env.VITE_APPWRITE_DATABASE_ID,
             import.meta.env.VITE_APPWRITE_COLLECTION_ID,
             eventId
         );
 
-        // Update the categories array
+
         const updatedCategories = event.categories.map(category => {
-            const [name, price, quantity, phase] = category.split(':');
+            const [name, price, quantity, ...phaseParts] = category.split(':').map(p => p.trim());
+            const phase = phaseParts.join(':');
+            
             if (name === ticketName.split(' - ')[0]) {
-                const newQuantity = parseInt(quantity) - quantityBooked;
-                if (newQuantity < 0) {
-                    throw new Error(`Not enough tickets available for ${ticketName}`);
-                }
-                return `${name}:${price}:${newQuantity}:${phase}`;
+                const newQuantity = Math.max(parseInt(quantity) - quantityBooked, 0);
+                return phase ? `${name}:${price}:${newQuantity}:${phase}` 
+                            : `${name}:${price}:${newQuantity}`;
             }
             return category;
         });
 
-        // Update the event document
-        await databases.updateDocument(
+        const result = await databases.updateDocument(
             import.meta.env.VITE_APPWRITE_DATABASE_ID,
             import.meta.env.VITE_APPWRITE_COLLECTION_ID,
             eventId,
-            {
-                categories: updatedCategories
-            }
+            { categories: updatedCategories }
         );
 
         return true;

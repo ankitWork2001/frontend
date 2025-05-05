@@ -18,6 +18,7 @@ const EventDetails = ({ }) => {
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
   const [ticketsAvailable, setTicketsAvailable] = useState({});
   const [mapUrl, setMapUrl] = useState("");
+  const [paymentSuccessLoading, setPaymentSuccessLoading] = useState(false);
   const { isAuthenticated, user, isLoading: authLoading } = useAuth();
 
 
@@ -32,25 +33,33 @@ const EventDetails = ({ }) => {
 
       try {
         setLoading(true);
-        setError(null);
-
         const eventData = await getEventDetails(eventId);
+
+        // Debug log
+        console.log("Raw event data from DB:", eventData);
+
         if (!eventData) throw new Error("Event data not found");
 
         const imageUrl = `https://cloud.appwrite.io/v1/storage/buckets/66dd97eb0009f68104ef/files/${eventData.imageFileId}/view?project=67699acf002ecc80c89f&mode=admin`;
 
-        // Calculate tickets available for each category
+        // Tickets available calculate karna
         const ticketsData = {};
         if (eventData.categories && Array.isArray(eventData.categories)) {
           eventData.categories.forEach(cat => {
             try {
-              const [name, price, qty] = cat.split(':').map(item => item.trim());
-              ticketsData[name] = parseInt(qty) || 0;
+              const parts = cat.split(':').map(item => item.trim());
+              if (parts.length >= 3) { // At least name:price:qty
+                const [name, price, qty] = parts;
+                ticketsData[name] = parseInt(qty) || 0;
+              }
             } catch (err) {
               console.error("Error processing category:", cat, err);
             }
           });
         }
+
+        // Debug log
+        console.log("Processed tickets data:", ticketsData);
 
         setTicketsAvailable(ticketsData);
         setEvent({ ...eventData, imageField: imageUrl });
@@ -112,26 +121,34 @@ const EventDetails = ({ }) => {
   const getTicketOptions = () => {
     if (!event?.categories || !Array.isArray(event.categories)) return [];
 
-    const currentPhase = Array.isArray(event.phase)
-      ? event.phase.filter(Boolean).slice(-1)[0]?.split(':')[0]?.trim()
+    // Current phase nikalne ka better way
+    const currentPhase = event.phase?.length > 0
+      ? event.phase[event.phase.length - 1].split(':')[0]?.trim()
       : null;
 
     return event.categories
       .filter(cat => {
         try {
           const parts = cat.split(':').map(item => item.trim());
-          if (parts.length < 4) return false;
+          if (parts.length < 3) return false; // At least name:price:qty required
 
           const [name, price, qty, phaseTag] = parts;
+          const availableQty = parseInt(qty) || 0;
 
-          return parseInt(qty) > 0 && phaseTag === currentPhase;
+          // Debugging logs - remove after fixing
+          console.log(`Ticket: ${name}, Qty: ${availableQty}, Phase: ${phaseTag}, CurrentPhase: ${currentPhase}`);
+
+          // Phase check only if phaseTag exists
+          const phaseMatch = phaseTag ? phaseTag === currentPhase : true;
+
+          return availableQty > 0 && phaseMatch;
         } catch (err) {
           console.error("Error processing category:", cat, err);
           return false;
         }
       })
       .map(cat => {
-        const [name, price, qty, phaseTag] = cat.split(':').map(item => item.trim());
+        const [name, price, qty] = cat.split(':').map(item => item.trim());
         return {
           name,
           price: parseFloat(price),
@@ -144,7 +161,8 @@ const EventDetails = ({ }) => {
 
   const ticketOptions = getTicketOptions();
   const currentTicket = selectedTicket || ticketOptions[0];
-  const isSoldOut = ticketOptions.length === 0;
+  const isSoldOut = ticketOptions.length === 0 ||
+    (currentTicket && ticketsAvailable[currentTicket.category] <= 0);
 
   const calculateTotals = () => {
     if (!currentTicket) return {
@@ -155,8 +173,8 @@ const EventDetails = ({ }) => {
     };
 
     const subtotal = (currentTicket.price * quantity).toFixed(2);
-    const gst = (currentTicket.price * quantity * 0.05).toFixed(2);
-    const internetHandlingFee = (currentTicket.price * quantity * 0.05).toFixed(2);
+    const gst = (currentTicket.price * quantity * 0.18).toFixed(2);
+    const internetHandlingFee = (currentTicket.price * quantity * 0.07).toFixed(2);
     const totalAmount = (parseFloat(subtotal) + parseFloat(gst) + parseFloat(internetHandlingFee)).toFixed(2);
 
     return { gst, internetHandlingFee, subtotal, totalAmount };
@@ -272,6 +290,7 @@ const EventDetails = ({ }) => {
           order_id: null,
           handler: async function (response) {
             try {
+              setPaymentSuccessLoading(true);
 
               // Payment success - verify ticket availability one final time
               const finalEvent = await getEventDetails(eventId);
@@ -319,7 +338,7 @@ const EventDetails = ({ }) => {
                 userId: user.$id,
                 eventId,
                 eventName: event.name,
-                eventSub_name: event.tagline || '',
+                eventSub_name: event.sub_name || "",
                 eventDate: event.date,
                 eventTime: event.time,
                 eventLocation: event.location,
@@ -344,7 +363,7 @@ const EventDetails = ({ }) => {
               try {
                 // Create QR data using the ticketDocId
                 const qrData = ticketDocId;
-                
+
                 // Generate QR code as canvas
                 const canvas = document.createElement('canvas');
                 await QRCode.toCanvas(canvas, qrData, {
@@ -355,32 +374,32 @@ const EventDetails = ({ }) => {
                     light: '#ffffff'
                   }
                 });
-              
+
                 // Convert canvas to blob
                 const blob = await new Promise((resolve) => {
                   canvas.toBlob(resolve, 'image/png');
                 });
-              
+
                 if (!blob) {
                   throw new Error("Failed to convert QR code to blob");
                 }
-              
+
                 // Use consistent filename format
                 const qrFilename = `${ticketDocId}_ticket_qr.png`;
-                
+
                 // Create File object
                 const file = new File([blob], qrFilename, {
                   type: 'image/png',
                   lastModified: Date.now()
                 });
-                
+
                 // Store the QR code
                 await storage.createFile(
                   import.meta.env.VITE_APPWRITE_TICKET_QRs_BUCKET_ID,
                   qrFilename,
                   file
                 );
-                
+
                 // Update the ticket document with QR code filename
                 await databases.updateDocument(
                   import.meta.env.VITE_APPWRITE_DATABASE_ID,
@@ -390,7 +409,7 @@ const EventDetails = ({ }) => {
                     qrCodeFileId: qrFilename
                   }
                 );
-              
+
               } catch (qrError) {
                 console.error("QR Code generation/upload failed:", qrError);
                 // Update with fallback pattern
@@ -436,6 +455,8 @@ const EventDetails = ({ }) => {
                 console.error("Failed to delete lock:", deleteError);
               }
 
+              await new Promise(resolve => setTimeout(resolve, 500)); // Optional delay
+
               navigate(`/booking-confirmation/${order.$id}`, {
                 state: {
                   orderDetails: {
@@ -451,6 +472,7 @@ const EventDetails = ({ }) => {
                   },
                   eventDetails: {
                     name: event.name,
+                    sub_name: event.sub_name || "",
                     tagline: event.tagline,
                     date: event.date,
                     time: event.time,
@@ -460,6 +482,7 @@ const EventDetails = ({ }) => {
                 }
               });
             } catch (error) {
+              setPaymentSuccessLoading(false);
               console.error("Post-payment processing failed:", error);
               try {
                 await databases.deleteDocument(
@@ -611,11 +634,13 @@ const EventDetails = ({ }) => {
                   >
                     -
                   </button>
-                  <span className="text-lg mx-2">{quantity}</span>
+                  <span className="text-lg mx-2">
+                    {Math.max(quantity, 0)} {/* Ensures never shows below 0 */}
+                  </span>
                   <button
                     className="text-xl cursor-pointer px-2"
-                    onClick={increment}
-                    disabled={quantity >= ticketsAvailable[currentTicket.category]}
+                    onClick={() => increment(selectedTicket?.maxQuantity || 10)}
+                    disabled={quantity >= (ticketsAvailable[currentTicket.category] || 0)}
                   >
                     +
                   </button>
@@ -668,11 +693,11 @@ const EventDetails = ({ }) => {
               {showPriceBreakdown && (
                 <div className="pl-4">
                   <div className="flex justify-between text-sm text-yellow-400 py-1">
-                    <span>+ Tax & GST (5%)</span>
+                    <span>+ Tax & GST (18%)</span>
                     <span>INR {gst}</span>
                   </div>
                   <div className="flex justify-between text-sm text-yellow-400 py-1">
-                    <span>+ Internet Handling Fee (5%)</span>
+                    <span>+ Internet Handling Fee (7%)</span>
                     <span>INR {internetHandlingFee}</span>
                   </div>
                 </div>
@@ -684,6 +709,16 @@ const EventDetails = ({ }) => {
                 <span>INR {totalAmount}</span>
               </div>
             </div>
+            {paymentSuccessLoading && (
+              <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center">
+                <div className="text-white text-xl font-semibold">
+                  Processing your booking...
+                  <div className="mt-4 flex justify-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-white"></div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="mt-8">
               <h3 className="text-xl md:text-2xl font-semibold">Event Info</h3>
               <ul className="text-sm md:text-base text-gray-400 list-disc pl-6 space-y-2 mt-2">

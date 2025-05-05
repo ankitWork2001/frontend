@@ -128,17 +128,12 @@ const Ticket = () => {
           <div className="text-lg line-clamp-2 text-center">
             {eventDetails?.name}
           </div>
-          <div className="text-xs text-center mt-1">
-            {eventDetails?.tagline || "Premium Event"}
-          </div>
         </div>
-
-        {/* Tagline - Made more compact */}
-        <div className="w-full flex justify-center py-1 flex-none">
-          <div className="text-[10px] text-gray-500">
-            {eventDetails?.tagline || "Premium Event"}
-          </div>
-        </div>
+        {eventDetails?.sub_name && (
+              <p className="text-[10px] mb-1 text-gray-500 text-center">
+                {eventDetails.sub_name}
+              </p>
+            )}
 
         {/* Main Content - Added overflow control */}
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -220,18 +215,24 @@ const Ticket = () => {
 
 
           {/* QR Section - Made more compact */}
-          <div className="flex flex-col items-center px-4 pb-4">
-            <p className="text-xs mb-2 text-gray-600">
-            {eventDetails?.name}
+          {/* QR Section - Adjusted spacing */}
+          <div className="flex flex-col items-center px-4 pb-2">
+            <p className="text-xs mb-4 text-gray-600 text-center">
+              {eventDetails?.name}
             </p>
-            <div className="bg-white border border-gray-300 p-2 rounded-lg">
+            {eventDetails?.sub_name && (
+              <p className="text-[10px] mb-1 text-gray-500 text-center">
+                {eventDetails.sub_name}
+              </p>
+            )}
+            <div className="bg-white border border-gray-300 p-2 rounded-lg mb-3">
               {error ? (
                 <p className="text-red-500 text-xs text-center">{error}</p>
               ) : qrCodeUrl ? (
                 <img
                   src={qrCodeUrl}
                   alt="QR Code"
-                  className="w-32 h-32 object-contain"
+                  className="w-34 h-34 object-contain"
                   onError={() => setError("Failed to load QR image")}
                 />
               ) : (
@@ -243,15 +244,16 @@ const Ticket = () => {
                 />
               )}
             </div>
-            {/* Event ID + Quantity */}
-            <div className="w-full mt-2 flex flex-col items-center justify-center space-y-1 px-2">
+
+            {/* Event ID + Quantity - tightened spacing */}
+            <div className="w-full flex flex-col items-center justify-center space-y-1 px-2">
               <p className="text-gray-600 text-[10px] font-mono text-center break-words">
-                {qrData ||
-                  "Event ID not available"}
+                {qrData || "Event ID not available"}
               </p>
               <p className="text-lg text-center">x{quantity}</p>
             </div>
           </div>
+
         </div>
 
         {/* Footer - Made more compact */}
