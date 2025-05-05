@@ -44,15 +44,21 @@ const JoinCommunity = () => {
         }
 
         // Verify environment variables are set
-        if (!import.meta.env.VITE_APPWRITE_DATABASE_ID || 
-            !import.meta.env.VITE_APPWRITE_GROUPS_COLLECTION_ID) {
-          throw new Error("Configuration error - missing required parameters");
+        const databaseId = import.meta.env.VITE_APPWRITE_DATABASE_ID;
+        const collectionId = import.meta.env.VITE_APPWRITE_GROUPS_COLLECTION_ID;
+
+        if (!databaseId || !collectionId) {
+          console.error("Missing environment variables:", {
+            databaseId,
+            collectionId
+          });
+          throw new Error("Configuration error - please contact support");
         }
 
         // Fetch group details
         const response = await databases.getDocument(
-          import.meta.env.VITE_APPWRITE_DATABASE_ID,
-          import.meta.env.VITE_APPWRITE_GROUPS_COLLECTION_ID,
+          databaseId,
+          collectionId,
           groupId
         );
 
