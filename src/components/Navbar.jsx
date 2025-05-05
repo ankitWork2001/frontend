@@ -1,16 +1,37 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { FiLogOut, FiMenu, FiUser, FiX, FiSettings } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
 import { storage } from "../api/appwriteConfig";
 
 const Navbar = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("home");
   const [isOpen, setIsOpen] = useState(false);
   const [showPopover, setShowPopover] = useState(false);
   const { user, logout } = useAuth();
   const isLoggedIn = !!user;
   const [profilePicUrl, setProfilePicUrl] = useState(null);
+
+  useEffect(() => {
+    const path = location.pathname;
+    
+    // Exact matches first
+    if (path === "/") {
+      setActiveTab("home");
+      return;
+    }
+    
+    // Then partial matches
+    const tabs = ["events", "about", "profile", "admin"];
+    const currentTab = tabs.find(tab => path.startsWith(`/${tab}`));
+    
+    if (currentTab) {
+      setActiveTab(currentTab);
+    } else {
+      setActiveTab(null); // or keep previous value
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     if (user?.profilePicUrl) {

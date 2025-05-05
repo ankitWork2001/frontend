@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { databases } from "../api/appwriteConfig"; 
-import { useAuth } from "../context/AuthContext"; 
+import { databases } from "../api/appwriteConfig";
+import { useAuth } from "../context/AuthContext";
 
 const JoinCommunity = () => {
   const { groupId: paramGroupId } = useParams();
   const [searchParams] = useSearchParams();
   const queryGroupId = searchParams.get("groupId");
   const groupId = paramGroupId || queryGroupId;
-  
-  console.log("Group ID:", groupId); 
+
+  console.log("Group ID:", groupId);
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
@@ -23,15 +23,15 @@ const JoinCommunity = () => {
       try {
         // Check if user is logged in
         if (!user) {
-          const redirectPath = groupId 
+          const redirectPath = groupId
             ? `/joinGroup?groupId=${groupId}`
             : location.pathname + location.search;
-            
-          navigate("/login", { 
-            state: { 
+
+          navigate("/login", {
+            state: {
               from: redirectPath,
               message: "Please login to join this community"
-            } 
+            }
           });
           return;
         }
@@ -67,7 +67,7 @@ const JoinCommunity = () => {
         }
 
         setGroup(response);
-        
+
         // Check if current user is already a member
         if (response.members && Array.isArray(response.members)) {
           setIsMember(response.members.includes(user.$id));
@@ -78,7 +78,7 @@ const JoinCommunity = () => {
         setLoading(false);
       } catch (err) {
         console.error("Error fetching group:", err);
-        setError(err.message.includes("Missing required parameter") 
+        setError(err.message.includes("Missing required parameter")
           ? "Configuration error - please contact support"
           : err.message || "Failed to fetch group details");
         setLoading(false);
@@ -96,7 +96,7 @@ const JoinCommunity = () => {
       // Create updated members array
       const currentMembers = Array.isArray(group.members) ? group.members : [];
       const updatedMembers = [...currentMembers, user.$id];
-      
+
       // Update document in Appwrite
       const updatedGroup = await databases.updateDocument(
         import.meta.env.VITE_APPWRITE_DATABASE_ID,
@@ -110,7 +110,7 @@ const JoinCommunity = () => {
       // Update local state with the response from Appwrite
       setGroup(updatedGroup);
       setIsMember(true);
-      
+
       // Optionally navigate to group page or show success
       navigate(`/joinGroup/${groupId}`);
     } catch (err) {
@@ -131,7 +131,7 @@ const JoinCommunity = () => {
     return (
       <div className="flex justify-center items-center min-h-screen bg-black">
         <div className="text-white">{error}</div>
-        <button 
+        <button
           onClick={() => navigate("/")}
           className="mt-4 text-white underline"
         >
@@ -158,7 +158,7 @@ const JoinCommunity = () => {
           style={{ width: "80px", height: "80px", margin: "18px auto 10px" }}
         >
           {group.groupImageId ? (
-            <img 
+            <img
               src={`${import.meta.env.VITE_APPWRITE_ENDPOINT}/storage/buckets/${import.meta.env.VITE_APPWRITE_GROUP_PROFILE_PICS_BUCKET_ID}/files/${group.groupImageId}/view?project=${import.meta.env.VITE_APPWRITE_PROJECT}`}
               alt="Group"
               className="w-full h-full object-cover"
@@ -217,8 +217,13 @@ const JoinCommunity = () => {
 
         {/* Join Button or Member Status */}
         {isMember ? (
-          <div className="bg-gray-200 text-gray-700 rounded-lg mx-5 py-2">
-            Already a Member
+          <div className="flex flex-col items-center">
+            <div className="bg-gray-200 text-gray-700 rounded-lg mx-5 py-2 w-[calc(100%-40px)] text-center">
+              Already a Member
+            </div>
+            <p className="text-white text-sm mt-2 text-center mx-7">
+              You've successfully joined the group! Open the app to start chatting with your group members.
+            </p>
           </div>
         ) : (
           <button
