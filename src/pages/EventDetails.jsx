@@ -722,8 +722,8 @@ const EventDetails = ({ }) => {
             <div className="mt-8">
               <h3 className="text-xl md:text-2xl font-semibold">Event Info</h3>
               <ul className="text-sm md:text-base text-gray-400 list-disc pl-6 space-y-2 mt-2">
-                {event?.eventInfo?.split(",").map((item, index) => (
-                  <li key={index}>{item.trim()}</li>
+                {event?.eventInfo?.split("\n").map((item, index) => (
+                  item.trim() && <li key={index}>{item.trim().replace(/^•\s*/, '')}</li>
                 )) || <p>Loading event info...</p>}
               </ul>
             </div>
