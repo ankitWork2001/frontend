@@ -205,13 +205,20 @@ export const updateTicketQuantity = async (eventId, ticketName, quantityBooked) 
             return category;
         });
 
+        // Calculate new ticketsLeft value
+        const currentTicketsLeft = parseInt(event.ticketsLeft) || 0;
+        const newTicketsLeft = Math.max(0, currentTicketsLeft - quantityBooked);
+
+        // Update both fields in a single operation
         const result = await databases.updateDocument(
             import.meta.env.VITE_APPWRITE_DATABASE_ID,
             import.meta.env.VITE_APPWRITE_COLLECTION_ID,
             eventId,
-            { categories: updatedCategories }
+            { 
+                categories: updatedCategories,
+                ticketsLeft: newTicketsLeft.toString() 
+            }
         );
-
         return true;
     } catch (error) {
         console.error('Error updating ticket quantity:', error);

@@ -164,7 +164,7 @@ const AdminPanel = () => {
 
      const [eventData, setEventData] = useState({
           name: "",
-          sub_name:"",
+          sub_name: "",
           price: "",
           eventInfo: "",
           location: "",
@@ -256,6 +256,50 @@ const AdminPanel = () => {
           setPhases(newPhases);
      };
 
+     const handleTicketBooking = async (eventId) => {
+          try {
+               // First get the current event data
+               const event = await databases.getDocument(
+                    import.meta.env.VITE_APPWRITE_DATABASE_ID,
+                    import.meta.env.VITE_APPWRITE_COLLECTION_ID,
+                    eventId
+               );
+
+               // Calculate new tickets left (decrease by 1)
+               const newTicketsLeft = Math.max(0, parseInt(event.ticketsLeft) - 1);
+
+               // Also update the category quantity if currentTicket is selected
+               let categories = event.categories || [];
+               if (currentTicket) {
+                    categories = categories.map(cat => {
+                         if (cat.type === currentTicket.type) {
+                              return {
+                                   ...cat,
+                                   quantity: Math.max(0, parseInt(cat.quantity) - 1).toString()
+                              };
+                         }
+                         return cat;
+                    });
+               }
+
+               // Update the event document with both changes
+               await databases.updateDocument(
+                    import.meta.env.VITE_APPWRITE_DATABASE_ID,
+                    import.meta.env.VITE_APPWRITE_COLLECTION_ID,
+                    eventId,
+                    {
+                         ticketsLeft: newTicketsLeft.toString(),
+                         categories: categories
+                    }
+               );
+
+               // Refresh the events list
+               await fetchEvents();
+          } catch (error) {
+               console.error("Error booking ticket:", error);
+          }
+     };
+
      // When editing an existing event, you must carefully load all the phase data without losing existing data
      const handleEdit = (index) => {
           const eventToEdit = events[index];
@@ -304,6 +348,7 @@ const AdminPanel = () => {
           setEventData({
                ...eventData,
                ...eventToEdit,
+               sub_name: eventToEdit.sub_name || "",
                eventLocation_Lat_Lng_VenueName: eventToEdit.eventLocation_Lat_Lng_VenueName || "",
                existingImage: eventToEdit.imageField,
                image: null
@@ -463,32 +508,49 @@ const AdminPanel = () => {
                          `${cat.name.trim()}:${cat.price}:${cat.quantity}${currentPhase ? `:${currentPhase}` : ''}`
                     );
 
+               // Calculate total tickets from current categories
+               const totalTickets = categories.reduce((sum, cat) => {
+                    const quantity = parseInt(cat.quantity) || 0;
+                    return sum + quantity;
+               }, 0);
+
                let allCategoriesCombined = [];
+               let ticketsLeft = totalTickets; // Initialize with total tickets
 
                if (editingIndex !== null) {
-                    // For edits, preserve ALL existing categories from ALL phases
                     const existingCategories = events[editingIndex].categories || [];
 
-                    // Fixed this part - preserve all existing categories
+                    // Check if we're adding a completely new phase
+                    const isNewPhase = phases.some(p => {
+                         const existingPhases = events[editingIndex].phases || [];
+                         return !existingPhases.some(ep => ep.startsWith(p.name.trim() + ":"));
+                    });
+
+                    if (isNewPhase) {
+                         // For a completely new phase, reset ticketsLeft to the new total
+                         ticketsLeft = totalTickets;
+                    } else {
+                         // For existing phase updates, calculate based on previous sales
+                         const originalTotal = parseInt(events[editingIndex].totalTickets) || 0;
+                         const currentTicketsLeft = parseInt(events[editingIndex].ticketsLeft) || 0;
+                         const ticketsSold = originalTotal - currentTicketsLeft;
+                         ticketsLeft = Math.max(0, totalTickets - ticketsSold);
+                    }
+
                     allCategoriesCombined = [
-                         ...existingCategories, // Keep all existing categories
-                         ...newCategories.filter(newCat => {
-                              // Only add new categories that don't already exist for the current phase
-                              const newCatName = newCat.split(':')[0];
-                              return !existingCategories.some(existingCat => {
-                                   const existingCatParts = existingCat.split(':');
-                                   return existingCatParts[0] === newCatName &&
-                                        existingCatParts[3] === currentPhase;
-                              });
-                         })
+                         ...existingCategories.filter(existingCat => {
+                              const existingCatParts = existingCat.split(':');
+                              return existingCatParts[3] !== currentPhase;
+                         }),
+                         ...newCategories
                     ];
                } else {
-                    // For new events, just use the new categories
                     allCategoriesCombined = newCategories;
                }
 
                const eventPayload = {
                     name: eventData.name,
+                    sub_name: eventData.sub_name,
                     price: eventData.price.toString(),
                     eventInfo: eventData.eventInfo,
                     categories: allCategoriesCombined,
@@ -498,13 +560,8 @@ const AdminPanel = () => {
                     tags: Array.isArray(eventData.tags)
                          ? eventData.tags
                          : eventData.tags.split(",").map(tag => tag.trim()),
-                    totalTickets: Object.entries(categories)
-                         .filter(([_, data]) => data.selected)
-                         .reduce((sum, [_, data]) => {
-                              const qty = parseInt(data.quantity) || 0;
-                              return sum + qty;
-                         }, 0).toString(), // Calculate total tickets from categories
-                    ticketsLeft: "0", // Will be updated by your system
+                    totalTickets: totalTickets.toString(),
+                    ticketsLeft: ticketsLeft.toString(), // Will be updated by your system
                     phase: processedPhases,
                     imageField: imageUrl,
                     imageFileId,
@@ -536,6 +593,7 @@ const AdminPanel = () => {
                setEditingIndex(null); // Reset editing state
                setEventData({
                     name: "",
+                    sub_name: "",
                     price: "",
                     eventInfo: "",
                     location: "",

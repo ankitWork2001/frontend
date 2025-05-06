@@ -6,20 +6,20 @@ const EventList = ({ onEdit, onDelete }) => {
 
      useEffect(() => {
           const getEvents = async () => {
-            const eventData = await fetchEvents();
-            const updatedEvents = eventData.map((event) => {
-              const imageUrl = `https://cloud.appwrite.io/v1/storage/buckets/66dd97eb0009f68104ef/files/${event.imageFileId}/view?project=67699acf002ecc80c89f`;
-              return { ...event, imageField: imageUrl };
-            });
-            setEvents(updatedEvents);
+               const eventData = await fetchEvents();
+               const updatedEvents = eventData.map((event) => {
+                    const imageUrl = `https://cloud.appwrite.io/v1/storage/buckets/66dd97eb0009f68104ef/files/${event.imageFileId}/view?project=67699acf002ecc80c89f`;
+                    return { ...event, imageField: imageUrl };
+               });
+               setEvents(updatedEvents);
           };
-        
+
           getEvents();
-        
+
           const unsubscribe = subscribeToEvents(getEvents);
           return () => unsubscribe();
-        }, []);
-        
+     }, []);
+
 
      return (
           <div className="min-h-screen bg-gray-900 p-4 md:p-6 lg:p-8">
@@ -54,6 +54,12 @@ const EventList = ({ onEdit, onDelete }) => {
                                                        </td>
                                                        <td className="p-2 sm:p-3 md:p-4 border-r border-gray-400">
                                                             {event.price || "N/A"}
+                                                       </td>
+                                                       <td className="p-2 sm:p-3 md:p-4 border-r border-gray-400">
+                                                            {event.totalTickets}
+                                                       </td>
+                                                       <td className="p-2 sm:p-3 md:p-4 border-r border-gray-400">
+                                                            {event.ticketsLeft}
                                                        </td>
                                                        <td className="p-2 sm:p-3 md:p-4 border-r border-gray-400 hidden sm:table-cell max-w-[200px] truncate">
                                                             {event.eventInfo || "No Description"}
