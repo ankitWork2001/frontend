@@ -25,6 +25,7 @@ const AdminPanel = () => {
      const resultMapRef = useRef(null);
      const resultMarkerRef = useRef(null);
      const [location, setLocation] = useState(null); // { lat, lng, address }
+     const [termsAndConditions, setTermsAndConditions] = useState("");
 
      useEffect(() => {
           isAdmin().then((res) => {
@@ -566,7 +567,8 @@ const AdminPanel = () => {
                     imageField: imageUrl,
                     imageFileId,
                     date: eventData.date,
-                    time: formatTime(eventData.time)
+                    time: formatTime(eventData.time),
+                    termsAndConditions: termsAndConditions
                };
 
                if (editingIndex !== null) {
@@ -665,7 +667,7 @@ const AdminPanel = () => {
                                         key !== "image" && key !== "existingImage" && key !== "eventLocation_Lat_Lng_VenueName" && key !== "location" && (
                                              <div key={index} className="bg-gray-700 p-3 rounded-md">
                                                   <label className="block text-gray-300 text-sm mb-1 capitalize">{key}</label>
-                                                  <input
+                                                  <textarea
                                                        type={key === "date" ? "date" : key === "time" ? "time" : "text"}
                                                        placeholder={key}
                                                        value={eventData[key]}
@@ -856,6 +858,19 @@ const AdminPanel = () => {
                                              </div>
                                         ))}
                                    </div>
+                              </div>
+
+                              {/* Simplified Terms & Conditions Section */}
+                              <div className="mt-4 bg-gray-700 p-3 rounded-md">
+                                   <label className="block text-gray-300 text-sm font-bold mb-2">
+                                        Terms & Conditions
+                                   </label>
+                                   <textarea
+                                        value={termsAndConditions}
+                                        onChange={(e) => setTermsAndConditions(e.target.value)}
+                                        placeholder="Enter terms and conditions (one per line or as paragraphs)"
+                                        className="w-full h-40 p-3 bg-gray-800 text-white rounded-md border border-gray-600"
+                                   />
                               </div>
 
                               {/* Image Upload Section - remains unchanged */}

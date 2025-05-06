@@ -34,9 +34,7 @@ const EventDetails = ({ }) => {
       try {
         setLoading(true);
         const eventData = await getEventDetails(eventId);
-
-        // Debug log
-        console.log("Raw event data from DB:", eventData);
+        const terms = eventData.termsAndConditions || "";
 
         if (!eventData) throw new Error("Event data not found");
 
@@ -62,7 +60,7 @@ const EventDetails = ({ }) => {
         console.log("Processed tickets data:", ticketsData);
 
         setTicketsAvailable(ticketsData);
-        setEvent({ ...eventData, imageField: imageUrl });
+        setEvent({ ...eventData, imageField: imageUrl, termsAndConditions: terms });
 
         // Initialize selected ticket
         if (eventData.categories?.length > 0) {
@@ -764,26 +762,18 @@ const EventDetails = ({ }) => {
           </div>
         </div>
       </div>
-
-      <div className="bg-black py-12 md:py-16 px-4 md:px-10 lg:px-20 ">
+      <div className="bg-black py-12 md:py-16 px-4 md:px-10 lg:px-20">
         <div className="max-w-[1200px] mx-auto">
           <h3 className="text-2xl md:text-3xl font-bold text-white mb-6 md:mb-8">
             Terms & Conditions
           </h3>
-          <ul className="text-sm md:text-base text-gray-400 list-disc pl-6 space-y-3 md:space-y-4">
-            {[
-              "If you were denied entry, please email at bash@gmail.com",
-              "In case of event cancellation, refunds will only be processed if payouts haven't been released.",
-              "Bash is not responsible for intellectual property issues during performances.",
-              "Tickets allow 'Single Entry Per Day' and are non-refundable.",
-              "Attendees must carry a valid ID proof for age verification at the venue.",
-              "The event organizers reserve the right to refuse entry without providing a reason.",
-              "Outside food and beverages are strictly prohibited inside the venue.",
-              "The event schedule and lineup are subject to change without prior notice."
-            ].map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
+          <div className="text-sm md:text-base text-gray-400 whitespace-pre-line leading-relaxed space-y-3">
+            {event.termsAndConditions?.split('\n').map((paragraph, index) => (
+              <p key={index} className={paragraph ? '' : 'h-4'}>
+                {paragraph || '\u00A0'} {/* &nbsp; for empty lines */}
+              </p>
+            )) || "No terms specified for this event."}
+          </div>
         </div>
       </div>
     </div>
