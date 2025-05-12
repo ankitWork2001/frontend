@@ -29,9 +29,7 @@ const Footer = () => {
               +91 81463 31455
               </a>
             </p>
-            <p className="flex items-center gap-2 justify-center sm:justify-start">
-              📍 Central Park, New York
-            </p>
+           
           </div>
 
           {/* Quick Links Section */}

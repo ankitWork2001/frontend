@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Client, Account } from "appwrite";
+import { Eye, EyeOff } from "lucide-react";
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,16 +26,16 @@ const AuthForm = () => {
 
   // Initialize Appwrite client
   const client = new Client()
-  .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-  .setProject(import.meta.env.VITE_APPWRITE_PROJECT); // Must match exactly
+    .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
+    .setProject(import.meta.env.VITE_APPWRITE_PROJECT); // Must match exactly
 
-const account = new Account(client);
+  const account = new Account(client);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-  
+
     try {
       if (!isLogin) {
         if (formData.password !== formData.confirmPassword) {
@@ -58,7 +59,7 @@ const account = new Account(client);
     e.preventDefault();
     setForgotPasswordMessage("");
     setForgotPasswordLoading(true);
-    
+
     try {
       await account.createRecovery(
         forgotPasswordEmail,
@@ -69,7 +70,7 @@ const account = new Account(client);
     } catch (err) {
       console.error('Error details:', err);
       setForgotPasswordMessage(
-        err.type === 'user_not_found' 
+        err.type === 'user_not_found'
           ? 'No account found with this email'
           : 'Failed to send reset email. Please try again.'
       );
@@ -94,35 +95,35 @@ const account = new Account(client);
           <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full">
             <h3 className="text-xl font-bold text-white mb-4">Forgot Password</h3>
             <p className="text-gray-300 mb-4">Enter your email to receive reset instructions</p>
-            
+
             <form onSubmit={handleForgotPassword}>
               <input
                 type="email"
                 placeholder="your@email.com"
                 value={forgotPasswordEmail}
                 onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent mb-4"
+                className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent mb-4"
                 required
               />
-              
+
               {forgotPasswordMessage && (
                 <div className={`mb-4 p-3 rounded-md ${forgotPasswordMessage.includes("sent") ? "bg-green-500/20 text-green-200" : "bg-red-500/20 text-red-200"}`}>
                   {forgotPasswordMessage}
                 </div>
               )}
-              
+
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowForgotPasswordModal(false)}
-                  className="px-4 py-2 rounded-md text-gray-300 hover:text-white cursor-pointer"
+                  className="px-4 py-2 rounded-md text-gray-300 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={forgotPasswordLoading}
-                  className="px-4 py-2 rounded-md bg-black text-white hover:bg-black transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-md bg-black text-white hover:bg-black transition-colors"
                 >
                   {forgotPasswordLoading ? "Sending..." : "Send Instructions"}
                 </button>
@@ -192,7 +193,7 @@ const account = new Account(client);
                   placeholder="John Doe"
                   value={formData.fullName}
                   onChange={handleChange}
-                  className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
+                  className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   required
                 />
               </div>
@@ -210,7 +211,7 @@ const account = new Account(client);
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
-                className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
+                className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 required
               />
             </div>
@@ -228,16 +229,16 @@ const account = new Account(client);
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="block w-full h-11 px-4 pr-10 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
+                  className="block w-full h-11 px-4 pr-10 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   required
                   minLength={8}
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-white cursor-pointer"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-blue-600"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  👁
+                  {showPassword ? <Eye size={18}/> : <EyeOff size={18} />  }
                 </button>
               </div>
               {isLogin && (
@@ -245,7 +246,7 @@ const account = new Account(client);
                   <button
                     type="button"
                     onClick={() => setShowForgotPasswordModal(true)}
-                    className="text-sm text-white cursor-pointer "
+                    className="text-sm text-white hover:text-amber-300"
                   >
                     Forgot Password?
                   </button>
@@ -266,7 +267,7 @@ const account = new Account(client);
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent"
+                  className="block w-full h-11 px-4 py-2 text-sm rounded-md bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   required
                 />
               </div>
@@ -277,7 +278,7 @@ const account = new Account(client);
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 flex items-center justify-center gap-2 rounded-md bg-black text-white font-medium hover:bg-black transition-colors cursor-pointer"
+                className="w-full h-11 flex items-center justify-center gap-2 rounded-md bg-black text-white font-medium hover:bg-black transition-colors"
               >
                 {loading ? "Processing..." : isLogin ? "Login" : "Create Account"}
               </button>
@@ -289,7 +290,7 @@ const account = new Account(client);
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
             <button
               type="button"
-              className="text-white hover:text-white font-medium cursor-pointer"
+              className="text-white hover:text-white font-medium"
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError("");
